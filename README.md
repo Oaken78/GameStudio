@@ -1,4 +1,4 @@
-# DevelopmentRoot
+# GameStudio
 
 Claude Code environment for building Godot 4.7 games. One Godot project per folder under `games/`, each its own git repo.
 

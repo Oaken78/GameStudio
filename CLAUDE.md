@@ -1,4 +1,4 @@
-# DevelopmentRoot
+# GameStudio
 
 Godot 4.7.2 (GDScript) games, one Godot project and one git repo per folder under `games/<name>/`.
 Owner: Klas, senior game designer. Explain choices in design terms; prefer boring, readable code.
