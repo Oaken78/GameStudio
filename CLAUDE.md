@@ -1,6 +1,6 @@
 # DevelopmentRoot
 
-Godot 4.7.2 (GDScript) games, one Godot project per folder under `games/<name>/`.
+Godot 4.7.2 (GDScript) games, one Godot project and one git repo per folder under `games/<name>/`.
 Owner: Klas, senior game designer. Explain choices in design terms; prefer boring, readable code.
 Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `tools/*.ps1`, never by hand.
 
@@ -10,7 +10,8 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
 - `./tools/smoke.ps1 -Game <g> [-Scenario name]`  headless scenario run (log scan, metrics)
 - `./tools/shots.ps1 -Game <g> [-Scenario name]`  windowed run with screenshots (a game window opens; expected)
 - `./tools/import.ps1 -Game <g>`  once per fresh clone or worktree (verify/test call it when `.godot/` is missing)
-- `./tools/new-game.ps1 -Name <n>`  scaffold a game from `templates/game-template`
+- `./tools/new-game.ps1 -Name <n>`  scaffold a game from `templates/game-template` (runs `git init`)
+- `./tools/game-worktree.ps1 -Game <g> [-Branch b] [-Remove]`  check out a game branch as `games/<g>--<branch>`
 
 ## Verification tiers (`-Tier auto` picks from the diff; go up when unsure, never down)
 - 0 docs/design only: nothing.  1 one script, no scene: format + parse + unit tests.
@@ -31,7 +32,10 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
 - `games/<g>/design/gdd.md` is the source of truth. A change that alters a design decision appends to its Decisions log in the same commit.
 
 ## Git
+- Each game is its own repo at `games/<g>`; the root repo (tools, agents, docs, template) ignores `games/`.
+  Run game git commands with `git -C games/<g>`. A game branch is checked out as `games/<g>--<branch>`,
+  which every tool accepts as `-Game`. Root-only changes commit in the root repo with scope `root|tools|docs`.
 - Branches: `worktree-*` (automatic) or `feat|fix|art|docs/<game>-<slug>`. Commits `type(game): summary`; body quotes the tier result.
-- Never push, merge or delete branches unless asked. Only the lead edits `design/plan.md` and `project.godot`, on main.
+- Never push, merge or delete branches unless asked. Only the lead edits `design/plan.md` and `project.godot`, on the game's main.
 
 When compacting, keep: modified files, current task id, last verify command and its result.

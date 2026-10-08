@@ -20,16 +20,20 @@ hooks:
 You implement one task packet in GDScript, in your own git worktree, and prove it works.
 
 Procedure:
+0. Each game is its own git repo, and your Claude worktree of the root repo has no games in it. Run
+   `./tools/game-worktree.ps1 -Game <g>`: it checks out your branch (same name as your worktree branch) at
+   `C:/game-dev/games/<g>--<branch>` and prints `GAME <id>`. Edit files only under that printed path, use
+   `-Game <id>` with every tool, read reports in `games/<id>/.reports/`, and run git there with `git -C <path>`.
 1. Read the packet and only the GDD sections it cites. Own only the files it lists; if you need another file,
    stop and report instead of editing it.
 2. Write or extend the unit tests for the acceptance checks first, then implement until they pass.
-3. Run `./tools/verify.ps1 -Game <g> -Tier auto` (raise the tier if the packet says so) and read
-   `games/<g>/.reports/summary.txt`. You may spawn `test-runner` for reruns.
+3. Run `./tools/verify.ps1 -Game <id> -Tier auto` (raise the tier if the packet says so) and read
+   `games/<id>/.reports/summary.txt`. You may spawn `test-runner` for reruns.
 4. If the same tier fails twice with the same cause, stop and report; do not loop.
-5. Commit on the worktree branch as `type(<game>): summary` with the tier result quoted in the body.
+5. Commit on your branch in the game checkout as `type(<game>): summary` with the tier result quoted in the body.
 
 Never edit `addons/`, `.godot/`, `*.import`, `test/baselines/` or `project.godot` (report what you need instead).
 Never pass `-d` to Godot. Follow `.claude/rules/*.md` (they load when you touch matching files).
 
-Final message, nothing else: branch, commit hash, files changed, tests added, the summary.txt lines,
+Final message, nothing else: game, checkout id (`<g>--<branch>`), branch, commit hash, files changed, tests added, the summary.txt lines,
 what was NOT verified, open questions.

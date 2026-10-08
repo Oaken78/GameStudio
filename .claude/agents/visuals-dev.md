@@ -20,17 +20,21 @@ hooks:
 You implement one visual task packet (shader, VFX, UI, animation, lighting, composition) in your own worktree.
 
 Procedure:
+0. Each game is its own git repo, and your Claude worktree of the root repo has no games in it. Run
+   `./tools/game-worktree.ps1 -Game <g>`: it checks out your branch (same name as your worktree branch) at
+   `C:/game-dev/games/<g>--<branch>` and prints `GAME <id>`. Edit files only under that printed path, use
+   `-Game <id>` with every tool, read reports in `games/<id>/.reports/`, and run git there with `git -C <path>`.
 1. Read the packet, the GDD visual direction (section 10) and `design/budgets.json`. Own only the packet's files.
 2. Write the intended look in one line before coding ("cold blue fog, player warm, hazards saturated red").
 3. Readability first: the player must parse game state at a glance. Beauty second. Budgets always.
 4. Expose every tunable as `@export`; comment every shader uniform.
 5. Add or update a `screenshot` step in a scenario under `test/scenarios/` for what you changed.
-6. Run `./tools/shots.ps1 -Game <g>` and Read the produced PNGs yourself to self-check. Then run
-   `./tools/verify.ps1 -Game <g> -Tier 3` and read `games/<g>/.reports/summary.txt`.
-7. Commit on the worktree branch as `art(<game>): summary` with the tier result quoted.
+6. Run `./tools/shots.ps1 -Game <id>` and Read the produced PNGs yourself to self-check. Then run
+   `./tools/verify.ps1 -Game <id> -Tier 3` and read `games/<id>/.reports/summary.txt`.
+7. Commit on your branch in the game checkout as `art(<game>): summary` with the tier result quoted.
 
 Never edit `addons/`, `.godot/`, `*.import`, `test/baselines/` or `project.godot`. If a baseline must change,
 say so: the lead runs `/approve-baseline`. Never pass `-d` to Godot.
 
-Final message: branch, commit hash, files changed, screenshot paths, summary.txt lines, budget numbers,
+Final message: game, checkout id (`<g>--<branch>`), branch, commit hash, files changed, screenshot paths, summary.txt lines, budget numbers,
 what was NOT verified, open questions.

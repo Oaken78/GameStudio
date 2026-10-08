@@ -7,4 +7,5 @@ argument-hint: <game> <shot name | all>
 1. `./tools/shots.ps1 -Game $0 -SaveBaseline` (add `-Shot $1` unless `$1` is `all`). The script copies the
    latest run's PNGs into `games/$0/test/baselines/`; agents are blocked from editing that folder directly.
 2. Show Klas the before/after file names and RMSE values printed by the script.
-3. `git add games/$0/test/baselines` and commit as `test($0): approve baseline <shot>`.
+3. In the game's own repo: `git -C games/$0 add test/baselines`, then commit there as
+   `test($0): approve baseline <shot>`.

@@ -5,7 +5,7 @@ Details that do not belong in CLAUDE.md. Read on demand.
 ## Verification tiers
 
 `tools/verify.ps1 -Game <g> -Tier auto` classifies the change from `git status` plus the diff against `main`
-(files under `games/<g>/`). You may always run a higher tier than `auto` picks.
+in the game's own repo (files under `games/<g>/`). You may always run a higher tier than `auto` picks.
 
 | Tier | Trigger (files changed) | Runs | Typical time |
 |---|---|---|---|
@@ -34,15 +34,19 @@ so a hopeless implementer returns with the failure visible instead of looping fo
 
 ## Parallel work
 
-1. Inside one lead session: `/dispatch <game> ready` spawns up to 3 implementers in the background, each in
-   `.claude/worktrees/<name>/` on branch `worktree-<name>`, with disjoint owned paths from their packets.
+1. Inside one lead session: `/dispatch <game> ready` spawns up to 3 implementers in the background, each in a
+   Claude worktree `.claude/worktrees/<name>/` of the root repo on branch `worktree-<name>`, with disjoint owned
+   paths from their packets. That root worktree has no games, so each implementer runs
+   `tools/game-worktree.ps1 -Game <game>` and works in `games/<game>--worktree-<name>/`: a worktree of the game
+   repo on a branch with the same name. The stop gate finds it by that shared branch name. The game checkout
+   outlives the Claude worktree, so test-runner, code-reviewer and `/merge-branch` use it afterwards.
 2. Across desktop sessions: start a second session with the worktree option for a long-lived human-steered
    stream (art direction vs mechanics). Sessions can message each other for handovers.
 3. `/batch` for 5-30 mechanical units (a typing pass, an API rename).
 
 Conventions:
-- One task = one worktree = one owner = disjoint files. `project.godot`, autoloads and `design/plan.md`
-  are edited only by the lead on `main` (integration packet last).
+- One task = one game checkout = one owner = disjoint files. `project.godot`, autoloads and `design/plan.md`
+  are edited only by the lead on the game's `main` (integration packet last).
 - Keep the automatic `worktree-<name>` branch name; the commit and PR title carry the meaning.
 - Fresh worktrees have no `.godot/`; `verify.ps1` and `test.ps1` run `import.ps1` when the class cache is missing.
 - All worktrees of one game share `user://`; tests and the harness never write there (output goes to `.reports/`).
@@ -50,8 +54,8 @@ Conventions:
 
 Merge flow: implementer finishes (gate green, committed) -> test-runner re-runs the packet tier on the branch
 -> code-reviewer (tier 2+) -> playtest-critic (tier 3) -> findings go back to the same implementer ->
-`/merge-branch` (PR + squash via `gh` when installed, local `--no-ff` otherwise; merging is ask-gated) ->
-tier 1 on `main` -> `git worktree prune`. Conflicts in `.tscn` or `project.godot` are never auto-resolved.
+`/merge-branch <game> <branch>` (PR + squash via `gh` when the game repo has a remote, local `--no-ff` otherwise;
+merging is ask-gated) -> tier 1 on `main` -> `tools/game-worktree.ps1 -Remove` and `git worktree prune`. Conflicts in `.tscn` or `project.godot` are never auto-resolved.
 
 The lead plans, writes packets, dispatches, routes findings, merges, keeps `plan.md` current and asks Klas
 only for decisions (design, merge, scope). The lead does not read whole files (Explore does), does not
@@ -59,6 +63,8 @@ implement tier 2+ work itself and does not re-run tests itself (test-runner does
 
 ## Git
 
+- Each game is its own repo at `games/<g>` with its own `main`, history and remote. The root repo holds tools,
+  agents, skills, docs and the template, and ignores `games/*/`. Game git commands: `git -C games/<g> ...`.
 - Commits: Conventional Commits with the game folder as scope: `feat(rift): add dash with i-frames`.
   Shared changes use `root`, `tools`, `docs`. The body quotes the tier result
   (`verify: tier 2 PASS games/rift/.reports/smoke-20261008-1512`).

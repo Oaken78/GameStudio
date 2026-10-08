@@ -7,7 +7,24 @@ $script:RepoRootDefault = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 function Get-RepoRoot {
     param([string]$Root = '')
     if ($Root) { return (Resolve-Path $Root).Path }
-    return $script:RepoRootDefault
+    return (Get-MainCheckout $script:RepoRootDefault)
+}
+
+# Games are separate git repos under games/ and exist only in the main checkout of the root repo.
+# From a linked root worktree (.git is a file: "gitdir: <main>/.git/worktrees/<name>") return the main checkout.
+function Get-MainCheckout {
+    param([string]$Dir)
+    $dotgit = Join-Path $Dir '.git'
+    if (Test-Path $dotgit -PathType Leaf) {
+        $line = (Get-Content $dotgit -TotalCount 1) -replace '^gitdir:\s*', ''
+        $norm = ConvertTo-ForwardSlash $line.Trim()
+        $i = $norm.ToLower().LastIndexOf('/.git/worktrees/')
+        if ($i -gt 0) {
+            $main = $norm.Substring(0, $i)
+            if (Test-Path (Join-Path $main 'tools')) { return (Resolve-Path $main).Path }
+        }
+    }
+    return $Dir
 }
 
 function ConvertTo-ForwardSlash {
@@ -233,26 +250,33 @@ function Test-Budgets {
     return $fails
 }
 
-# Repo-relative (forward slash) files under games/<g> that are uncommitted, untracked, or committed on this branch but not on main.
+# Root-relative (forward slash) files under games/<g> that are uncommitted, untracked, or committed on this branch
+# but not on main. Each game is its own git repo (or a worktree of one); falls back to the root repo otherwise.
 function Get-ChangedFiles {
     param([string]$Root, [string]$GameRel)
     $set = New-Object 'System.Collections.Generic.HashSet[string]'
-    Push-Location $Root
+    $dir = Join-Path $Root $GameRel
+    $own = Test-Path (Join-Path $dir '.git')
+    $prefix = ''
+    $spec = $GameRel
+    $gitDir = $Root
+    if ($own) { $prefix = $GameRel + '/'; $spec = '.'; $gitDir = $dir }
+    Push-Location $gitDir
     try {
-        $st = @(git status --porcelain --untracked-files=all -- $GameRel)
+        $st = @(git status --porcelain --untracked-files=all -- $spec)
         foreach ($line in $st) {
             if ($null -eq $line -or $line.Length -le 3) { continue }
             $p = $line.Substring(3).Trim()
             if ($p.Contains(' -> ')) { $p = ($p -split ' -> ')[-1] }
             $p = $p.Trim('"')
-            $null = $set.Add((ConvertTo-ForwardSlash $p))
+            $null = $set.Add($prefix + (ConvertTo-ForwardSlash $p))
         }
         $head = git rev-parse --verify -q HEAD
         $main = git rev-parse --verify -q main
         if ($head -and $main -and ($head -ne $main)) {
             $base = git merge-base main HEAD
             if ($base) {
-                foreach ($f in @(git diff --name-only $base HEAD -- $GameRel)) { if ($f) { $null = $set.Add($f) } }
+                foreach ($f in @(git diff --name-only $base HEAD -- $spec)) { if ($f) { $null = $set.Add($prefix + $f) } }
             }
         }
     } finally { Pop-Location }

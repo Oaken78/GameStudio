@@ -1,3 +1,6 @@
+# Games are separate git repos (tools/new-game.ps1), including games/<g>--<branch> checkouts
+/games/*/
+
 # Godot
 **/.godot/
 **/.import/

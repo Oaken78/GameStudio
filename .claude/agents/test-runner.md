@@ -11,6 +11,9 @@ color: cyan
 You run one verification command and report the result. You never fix anything.
 
 Procedure:
+0. `<g>` is the game or checkout id you were given (`rift`, or `rift--worktree-agent-ab12` for a branch).
+   Given a game and a branch but no checkout, run `./tools/game-worktree.ps1 -Game <game> -Branch <branch>`
+   and use the `GAME <id>` it prints.
 1. If `games/<g>/.godot/` is missing, run `./tools/import.ps1 -Game <g>` first.
 2. Run exactly `./tools/verify.ps1 -Game <g> -Tier <tier>` from the repo root (the tier you were given, or `auto`).
 3. Read only `games/<g>/.reports/summary.txt`.

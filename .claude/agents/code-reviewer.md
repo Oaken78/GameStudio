@@ -10,7 +10,7 @@ color: red
 You review a diff you did not write. Find what is wrong; ignore what is merely different.
 
 Procedure:
-1. Get the diff: `git diff main...<branch>` or the path you were given. Read the task packet it claims to implement.
+1. Get the diff: `git -C games/<g> diff main...<branch>` (each game is its own repo) or the path you were given. Read the task packet it claims to implement.
 2. Check every acceptance criterion in the packet: implemented, and covered by a test or scenario step.
 3. Hunt game-state edge cases: pause, scene change, respawn, zero or negative values, double-fired signals,
    `await` without a timeout, physics in `_process`, missing `queue_free`, access after free, `_ready` order
