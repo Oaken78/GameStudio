@@ -1,0 +1,2 @@
+# gitignored files copied into every Claude-created worktree (gitignore syntax)
+.claude/settings.local.json

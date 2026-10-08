@@ -1,0 +1,99 @@
+# Workflow reference
+
+Details that do not belong in CLAUDE.md. Read on demand.
+
+## Verification tiers
+
+`tools/verify.ps1 -Game <g> -Tier auto` classifies the change from `git status` plus the diff against `main`
+(files under `games/<g>/`). You may always run a higher tier than `auto` picks.
+
+| Tier | Trigger (files changed) | Runs | Typical time |
+|---|---|---|---|
+| 0 | only `*.md`, `design/` | nothing | 0 s |
+| 1 | at most one `.gd` under `scripts/` or `autoload/` (plus its test), no scene, shader or UI | gdformat check (if installed), `--check-only` parse (advisory), GUT unit tests for the matching `test_<name>.gd`, else all unit tests | 10-30 s |
+| 2 | more scripts, `.tscn`/`.tres`, `project.godot`, `autoload/` | tier 1 + all GUT tests + every `test/scenarios/*.json` headless + log scan + metrics vs `design/budgets.json` | 30-90 s |
+| 3 | any `.gdshader`, `ui/`, `shaders/`, `assets/`, images, audio, theme, or the packet says feel/milestone | tier 2 + `tools/shots.ps1` (windowed screenshots, compare vs `test/baselines/`, budgets) | 2-5 min |
+
+Output: at most 40 lines on the console and `games/<g>/.reports/summary.txt` with one line per stage,
+failing tests with assertion lines, up to 20 log-scan lines, `BUDGET FAIL` lines and the artifact folder.
+Exit code 0 pass, 1 fail.
+
+Policy the agents apply:
+
+| Change | Tier | Who runs it | Review |
+|---|---|---|---|
+| tunable, typo, rename | 1 | SubagentStop gate (automatic) | none |
+| logic fix | 1 + failing-then-passing test | implementer, gate | `/code-review low` on the diff |
+| new mechanic, enemy, screen | 2 (3 if it has a look) + a scenario step | implementer, then test-runner | code-reviewer |
+| shader, particles, UI, palette | 3 | visuals-dev, then `/screenshot-review` | playtest-critic |
+| milestone | 3 on all scenarios | lead | code-reviewer + playtest-critic + Klas plays it |
+
+The SubagentStop gate on `gameplay-dev` and `visuals-dev` never runs above tier 1 and caches the result by
+diff hash, so re-stopping after a green run is free. Claude Code stops blocking after 8 consecutive blocks,
+so a hopeless implementer returns with the failure visible instead of looping forever.
+
+## Parallel work
+
+1. Inside one lead session: `/dispatch <game> ready` spawns up to 3 implementers in the background, each in
+   `.claude/worktrees/<name>/` on branch `worktree-<name>`, with disjoint owned paths from their packets.
+2. Across desktop sessions: start a second session with the worktree option for a long-lived human-steered
+   stream (art direction vs mechanics). Sessions can message each other for handovers.
+3. `/batch` for 5-30 mechanical units (a typing pass, an API rename).
+
+Conventions:
+- One task = one worktree = one owner = disjoint files. `project.godot`, autoloads and `design/plan.md`
+  are edited only by the lead on `main` (integration packet last).
+- Keep the automatic `worktree-<name>` branch name; the commit and PR title carry the meaning.
+- Fresh worktrees have no `.godot/`; `verify.ps1` and `test.ps1` run `import.ps1` when the class cache is missing.
+- All worktrees of one game share `user://`; tests and the harness never write there (output goes to `.reports/`).
+- Nobody passes `-d` to Godot. Headless runs open no ports, so parallel runs do not collide.
+
+Merge flow: implementer finishes (gate green, committed) -> test-runner re-runs the packet tier on the branch
+-> code-reviewer (tier 2+) -> playtest-critic (tier 3) -> findings go back to the same implementer ->
+`/merge-branch` (PR + squash via `gh` when installed, local `--no-ff` otherwise; merging is ask-gated) ->
+tier 1 on `main` -> `git worktree prune`. Conflicts in `.tscn` or `project.godot` are never auto-resolved.
+
+The lead plans, writes packets, dispatches, routes findings, merges, keeps `plan.md` current and asks Klas
+only for decisions (design, merge, scope). The lead does not read whole files (Explore does), does not
+implement tier 2+ work itself and does not re-run tests itself (test-runner does).
+
+## Git
+
+- Commits: Conventional Commits with the game folder as scope: `feat(rift): add dash with i-frames`.
+  Shared changes use `root`, `tools`, `docs`. The body quotes the tier result
+  (`verify: tier 2 PASS games/rift/.reports/smoke-20261008-1512`).
+- Never push, merge or delete branches unless asked.
+- `.godot/`, `.reports/`, `.claude/worktrees/` and `settings.local.json` are ignored. `*.import`, `*.uid`,
+  `.gutconfig.json`, `test/baselines/*.png` and `export_presets.cfg` (without secrets) are committed.
+
+## Models and cost
+
+| Agent | Model / effort | Why |
+|---|---|---|
+| Explore | haiku / low | lookups are mechanical and frequent; overrides the built-in Explore |
+| test-runner | haiku / low | runs one script, reads one summary; `omitClaudeMd` keeps its prompt small |
+| gameplay-dev, visuals-dev | sonnet / medium | highest volume of tokens; tests, gate and Opus review protect quality |
+| code-reviewer | opus / medium | low volume, one diff; a different model than the author catches more |
+| game-designer, playtest-critic | opus / high | judgement is the product; priorities 1-3 live here |
+
+Knobs: raise implementer effort to `high` in their frontmatter if code-reviewer keeps finding bugs; lower
+the lead to Sonnet with `/model` on cheap days. Rough cost per task type: small fix = one Sonnet subagent
+plus a tier 1 run; feature = packet + Sonnet implementer + Haiku test-runner + Opus review; milestone adds
+screenshots and an Opus playtest read (images capped at 6 per run).
+
+## Settled facts and timings
+
+Filled in by `tools/selftest.ps1` runs. Record the date, the Godot version and the numbers.
+
+| Date | Fact | Result |
+|---|---|---|
+| (pending) | GUT 9.7.1 under `--headless` on Godot 4.7.2 | not yet vendored (needs `tools/vendor-gut.ps1`) |
+| 2026-10-08 | `SceneTree.quit(code)` exit code through `*_console.exe` | works: `quit(10)` arrives as process exit 10 |
+| 2026-10-08 | `OS.add_logger()` catches `push_error` (empty rationale, text in `code`) | works; the log-file scan catches the same line, harness exits 11 |
+| 2026-10-08 | Input injection under `--headless` (issue #73557) | works on 4.7.2: `Input.parse_input_event` moved the player, so input scenarios run in tier 2 headless |
+| 2026-10-08 | `--log-file` with an absolute path, no project setting | works; the file contains the `ERROR:` lines |
+| 2026-10-08 | `await RenderingServer.frame_post_draw` windowed (1280x720, `--fixed-fps 60 --disable-vsync`) | works, no hang; two scenarios with screenshots in 8.9 s including compare |
+| 2026-10-08 | Screenshot RMSE (`Image.compute_image_metrics`, 0-255 scale) | identical frames 0.0; a 48 px square moved 120 px = 8.77; threshold set to 1.0 |
+| 2026-10-08 | Template timings on this machine | import 4 s (8 s cold), headless boot scenario 0.5 s, windowed shots 4 s per scenario, compare 4 s, whole selftest 25 s |
+| 2026-10-08 | `${CLAUDE_PROJECT_DIR}` inside hook `args` | substituted correctly (protect hook blocked a write under `addons/`) |
+| 2026-10-08 | Metrics monitors `TIME_PROCESS` / `TIME_PHYSICS_PROCESS` | refresh about once per second; `frame_ms` is measured from `Time.get_ticks_usec()` instead |

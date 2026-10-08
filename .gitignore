@@ -1,0 +1,25 @@
+# Godot
+**/.godot/
+**/.import/
+**/export/
+**/builds/
+**/.reports/
+*.tmp
+
+# Claude Code
+.claude/worktrees/
+.claude/settings.local.json
+**/.claude/settings.local.json
+CLAUDE.local.md
+
+# Local secrets / machine config
+.env
+.env.*
+
+# OS / editors / python
+Thumbs.db
+.DS_Store
+.vs/
+.vscode/
+.idea/
+__pycache__/

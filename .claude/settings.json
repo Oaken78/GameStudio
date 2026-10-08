@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "effortLevel": "medium",
+  "worktree": { "baseRef": "head" },
+  "env": {
+    "GODOT_BIN": "C:/Tools/Godot/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable_mono_win64_console.exe",
+    "GODOT_RUN_TIMEOUT_SEC": "180",
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Edit(./games/**)",
+      "Edit(./docs/**)",
+      "Edit(./templates/**)",
+      "Edit(./tools/**)",
+      "Edit(./.claude/**)",
+      "Edit(./CLAUDE.md)",
+      "Edit(./README.md)",
+      "PowerShell(git status:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git add:*)",
+      "PowerShell(git commit:*)",
+      "PowerShell(git checkout:*)",
+      "PowerShell(git switch:*)",
+      "PowerShell(git branch:*)",
+      "PowerShell(git merge-base:*)",
+      "PowerShell(git worktree list:*)",
+      "PowerShell(git worktree prune:*)",
+      "PowerShell(git fetch:*)",
+      "PowerShell(git stash:*)",
+      "PowerShell(gh pr create:*)",
+      "PowerShell(gh pr view:*)",
+      "PowerShell(gh pr diff:*)",
+      "PowerShell(gh issue:*)",
+      "PowerShell(./tools/verify.ps1:*)",
+      "PowerShell(./tools/test.ps1:*)",
+      "PowerShell(./tools/smoke.ps1:*)",
+      "PowerShell(./tools/shots.ps1:*)",
+      "PowerShell(./tools/import.ps1:*)",
+      "PowerShell(./tools/new-game.ps1:*)",
+      "PowerShell(./tools/godot.ps1:*)",
+      "PowerShell(./tools/selftest.ps1:*)",
+      "PowerShell(.\\tools\\verify.ps1:*)",
+      "PowerShell(.\\tools\\test.ps1:*)",
+      "PowerShell(.\\tools\\smoke.ps1:*)",
+      "PowerShell(.\\tools\\shots.ps1:*)",
+      "PowerShell(.\\tools\\import.ps1:*)",
+      "PowerShell(.\\tools\\new-game.ps1:*)",
+      "PowerShell(.\\tools\\godot.ps1:*)",
+      "PowerShell(.\\tools\\selftest.ps1:*)",
+      "PowerShell(gdformat:*)",
+      "PowerShell(gdlint:*)",
+      "PowerShell(Get-ChildItem:*)",
+      "PowerShell(Get-Content:*)",
+      "PowerShell(Select-String:*)",
+      "PowerShell(Test-Path:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "WebFetch(domain:docs.godotengine.org)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:gut.readthedocs.io)",
+      "WebFetch(domain:github.com)",
+      "Agent(isolation:worktree)"
+    ],
+    "ask": [
+      "PowerShell(git push:*)",
+      "Bash(git push:*)",
+      "PowerShell(git rebase:*)",
+      "PowerShell(git reset:*)",
+      "PowerShell(git clean:*)",
+      "PowerShell(git worktree remove:*)",
+      "PowerShell(git branch -D:*)",
+      "PowerShell(gh pr merge:*)",
+      "Bash(gh pr merge:*)",
+      "PowerShell(gh release:*)",
+      "PowerShell(Remove-Item:*)",
+      "PowerShell(winget:*)",
+      "PowerShell(pip:*)",
+      "PowerShell(python -m pip:*)"
+    ],
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Edit(./**/.godot/**)",
+      "Edit(./games/**/addons/**)",
+      "Edit(./**/*.import)",
+      "Edit(./**/test/baselines/**)",
+      "Edit(./**/.reports/**)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/tools/hooks/session-start.ps1"],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/tools/hooks/protect.ps1"],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/tools/hooks/format-gd.ps1"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
