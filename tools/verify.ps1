@@ -30,13 +30,13 @@ if ($t -ge 1) {
     $scripts = @(Get-ChangedScripts -Files $files -GameRel $gameRel)
     if ($Tier -ne 'auto') { $scripts = @() }
     # format check (only when gdformat is installed)
-    $gdformat = Get-Command gdformat -ErrorAction SilentlyContinue
+    $gdformat = Get-GdTool 'gdformat'
     if ($gdformat) {
         $bad = 0
         foreach ($s in $scripts) {
             $full = Join-Path $proj $s
             if (-not (Test-Path $full)) { continue }
-            $null = & gdformat --check $full 2>&1
+            $null = & $gdformat --check $full 2>&1
             if ($LASTEXITCODE -ne 0) { $bad++; $ok = $false; Add-Line "FORMAT FAIL $s (run: gdformat $s)" }
         }
         Add-Line "format: checked $($scripts.Count) changed scripts, $bad need formatting"

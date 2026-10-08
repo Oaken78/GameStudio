@@ -10,9 +10,10 @@ try {
     $n = ($p -replace '\\', '/')
     if ($n -notmatch '\.gd$' -or $n -match '/addons/') { exit 0 }
     if (-not (Test-Path $p)) { exit 0 }
-    $cmd = Get-Command gdformat -ErrorAction SilentlyContinue
+    . (Join-Path (Split-Path $PSScriptRoot -Parent) '_lib.ps1')
+    $cmd = Get-GdTool 'gdformat'
     if (-not $cmd) { exit 0 }
-    $out = & gdformat $p 2>&1
+    $out = & $cmd $p 2>&1
     if ($LASTEXITCODE -ne 0) {
         $tail = @($out | Select-Object -Last 3) -join ' | '
         [Console]::Error.WriteLine("gdformat could not format $p : $tail")

@@ -9,10 +9,12 @@ try {
     if (-not $bin -or -not (Test-Path $bin)) {
         $warn += "WARN: GODOT_BIN not found ($bin). Set env.GODOT_BIN in .claude/settings.local.json to the Godot *_console.exe."
     }
-    if (-not (Get-Command gdformat -ErrorAction SilentlyContinue)) {
-        $warn += 'WARN: gdformat not on PATH, so the format hook is a no-op (pip install "gdtoolkit==4.*").'
+    . (Join-Path (Split-Path $PSScriptRoot -Parent) '_lib.ps1')
+    if (-not (Get-GdTool 'gdformat')) {
+        $warn += 'WARN: gdformat not found, so the format hook is a no-op (pip install "gdtoolkit==4.*", or set env.GDTOOLKIT_BIN).'
     }
-    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+    if (-not $gh -and -not (Test-Path 'C:\Program Files\GitHub CLI\gh.exe')) {
         $warn += 'WARN: gh not installed, so /merge-branch falls back to local merges (winget install GitHub.cli).'
     }
     if (-not (Test-Path (Join-Path $root 'templates\game-template\addons\gut\gut_cmdln.gd'))) {

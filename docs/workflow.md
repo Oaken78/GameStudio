@@ -87,7 +87,8 @@ Filled in by `tools/selftest.ps1` runs. Record the date, the Godot version and t
 
 | Date | Fact | Result |
 |---|---|---|
-| (pending) | GUT 9.7.1 under `--headless` on Godot 4.7.2 | not yet vendored (needs `tools/vendor-gut.ps1`) |
+| 2026-10-08 | GUT 9.7.1 under `--headless` on Godot 4.7.2 | works: 3 tests in 1.6 s, exit 0; a failing test gives exit 1 and a `FAIL` line with the assertion in `test-summary.txt` |
+| 2026-10-08 | gdformat 4.5.0 on the 4.7 template scripts | parses and formats them (`--check` exit 1 when unformatted); resolved via `env.GDTOOLKIT_BIN` since pip --user is not on PATH |
 | 2026-10-08 | `SceneTree.quit(code)` exit code through `*_console.exe` | works: `quit(10)` arrives as process exit 10 |
 | 2026-10-08 | `OS.add_logger()` catches `push_error` (empty rationale, text in `code`) | works; the log-file scan catches the same line, harness exits 11 |
 | 2026-10-08 | Input injection under `--headless` (issue #73557) | works on 4.7.2: `Input.parse_input_event` moved the player, so input scenarios run in tier 2 headless |

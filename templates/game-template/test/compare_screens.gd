@@ -39,7 +39,9 @@ func _init() -> void:
 		seen[shot_name] = true
 		var base_name := base_prefix + shot_name + ".png"
 		var base_path := baselines.path_join(base_name)
-		var entry := {"shot": shot_name, "baseline": base_name, "status": "NEW", "rmse": -1.0, "diff": ""}
+		var entry := {
+			"shot": shot_name, "baseline": base_name, "status": "NEW", "rmse": -1.0, "diff": ""
+		}
 		if FileAccess.file_exists(base_path):
 			var a := Image.load_from_file(shots.path_join(file))
 			var b := Image.load_from_file(base_path)
@@ -73,7 +75,15 @@ func _init() -> void:
 				continue
 			var shot_name := f.trim_prefix(base_prefix).get_basename()
 			if not seen.has(shot_name):
-				results.append({"shot": shot_name, "baseline": f, "status": "MISSING", "rmse": -1.0, "diff": ""})
+				results.append(
+					{
+						"shot": shot_name,
+						"baseline": f,
+						"status": "MISSING",
+						"rmse": -1.0,
+						"diff": ""
+					}
+				)
 	_write(report, {"threshold": threshold, "prefix": prefix, "results": results})
 	quit(0)
 

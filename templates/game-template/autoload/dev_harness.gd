@@ -12,12 +12,21 @@ const EXIT_LOAD := 13
 
 
 ## Counts ERROR / SCRIPT ERROR / SHADER ERROR lines (push_error arrives with an empty rationale and the text in code).
-class ErrorCounter extends Logger:
+class ErrorCounter:
+	extends Logger
 	var errors: PackedStringArray = PackedStringArray()
 	var _mutex := Mutex.new()
 
-	func _log_error(function: String, file: String, line: int, code: String, rationale: String,
-			_editor_notify: bool, error_type: Logger.ErrorType, _script_backtraces: Array[ScriptBacktrace]) -> void:
+	func _log_error(
+		function: String,
+		file: String,
+		line: int,
+		code: String,
+		rationale: String,
+		_editor_notify: bool,
+		error_type: Logger.ErrorType,
+		_script_backtraces: Array[ScriptBacktrace]
+	) -> void:
 		if error_type == ERROR_TYPE_WARNING:
 			return
 		var message := rationale if not rationale.is_empty() else code
@@ -107,9 +116,18 @@ func _run_scenario() -> void:
 		index += 1
 		var step: Dictionary = step_v
 		var outcome: Dictionary = await _run_step(step)
-		_steps_log.append({"index": index, "step": _step_name(step), "status": outcome.status, "detail": outcome.detail})
+		_steps_log.append(
+			{
+				"index": index,
+				"step": _step_name(step),
+				"status": outcome.status,
+				"detail": outcome.detail
+			}
+		)
 		if outcome.status == "fail":
-			_finish(EXIT_ASSERT, "step %d %s failed: %s" % [index, _step_name(step), outcome.detail])
+			_finish(
+				EXIT_ASSERT, "step %d %s failed: %s" % [index, _step_name(step), outcome.detail]
+			)
 			return
 		if outcome.status == "error":
 			_finish(EXIT_ENGINE_ERROR, "step %d %s: %s" % [index, _step_name(step), outcome.detail])
@@ -167,7 +185,12 @@ func _run_step(step: Dictionary) -> Dictionary:
 		var op := str(spec.get("op", "=="))
 		if _compare(value, op, expected):
 			return _ok()
-		return _fail("%s.%s is %s, expected %s %s" % [spec.get("node"), spec["prop"], str(value), op, str(expected)])
+		return _fail(
+			(
+				"%s.%s is %s, expected %s %s"
+				% [spec.get("node"), spec["prop"], str(value), op, str(expected)]
+			)
+		)
 	if step.has("set_prop"):
 		var spec: Dictionary = step["set_prop"]
 		var node := _find_node(str(spec.get("node", ".")))
@@ -195,7 +218,9 @@ func _run_step(step: Dictionary) -> Dictionary:
 		if not node.has_signal(sig):
 			return _fail("node has no signal %s" % sig)
 		var state := {"fired": false}
-		var cb := func(_a: Variant = null, _b: Variant = null, _c: Variant = null, _d: Variant = null) -> void:
+		var cb := func(
+			_a: Variant = null, _b: Variant = null, _c: Variant = null, _d: Variant = null
+		) -> void:
 			state["fired"] = true
 		node.connect(sig, cb, CONNECT_ONE_SHOT)
 		var limit := int(spec.get("timeout_frames", 300))
@@ -227,11 +252,15 @@ func _run_step(step: Dictionary) -> Dictionary:
 		return _ok("saved " + path)
 	if step.has("metrics"):
 		var spec: Dictionary = step["metrics"]
-		return await _collect_metrics(str(spec.get("name", "metrics")), int(spec.get("frames", 300)))
+		return await _collect_metrics(
+			str(spec.get("name", "metrics")), int(spec.get("frames", 300))
+		)
 	if step.has("assert_no_errors"):
 		if _counter.errors.is_empty():
 			return _ok()
-		return _error("%d engine error(s), first: %s" % [_counter.errors.size(), _counter.errors[0]])
+		return _error(
+			"%d engine error(s), first: %s" % [_counter.errors.size(), _counter.errors[0]]
+		)
 	if step.has("inject_error"):
 		push_error("DevHarness inject_error: %s" % str(step["inject_error"]))
 		await _wait_frames(1)
@@ -241,8 +270,13 @@ func _run_step(step: Dictionary) -> Dictionary:
 
 func _collect_metrics(metrics_name: String, frames: int) -> Dictionary:
 	var samples := {
-		"process_ms": [], "physics_ms": [], "frame_ms": [], "draw_calls": [],
-		"nodes": [], "orphan_nodes": [], "static_mem_mb": [],
+		"process_ms": [],
+		"physics_ms": [],
+		"frame_ms": [],
+		"draw_calls": [],
+		"nodes": [],
+		"orphan_nodes": [],
+		"static_mem_mb": [],
 	}
 	# frame_ms is wall-clock time between consecutive process frames (with --fixed-fps and no vsync that is
 	# pure work time). The TIME_* monitors refresh only about once per second, so they are kept as extras.
@@ -257,10 +291,16 @@ func _collect_metrics(metrics_name: String, frames: int) -> Dictionary:
 		var ph := Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
 		samples["process_ms"].append(p)
 		samples["physics_ms"].append(ph)
-		samples["draw_calls"].append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		samples["draw_calls"].append(
+			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		)
 		samples["nodes"].append(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
-		samples["orphan_nodes"].append(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
-		samples["static_mem_mb"].append(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0)
+		samples["orphan_nodes"].append(
+			Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+		)
+		samples["static_mem_mb"].append(
+			Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
+		)
 	var report := {
 		"name": metrics_name,
 		"frames": frames,
@@ -417,7 +457,10 @@ func _finish(code: int, message: String) -> void:
 		engine_errors = Array(_counter.errors)
 	if code == EXIT_OK and not engine_errors.is_empty():
 		code = EXIT_ENGINE_ERROR
-		message = "%d engine error(s) during the run, first: %s" % [engine_errors.size(), engine_errors[0]]
+		message = (
+			"%d engine error(s) during the run, first: %s"
+			% [engine_errors.size(), engine_errors[0]]
+		)
 	var result := {
 		"ok": code == EXIT_OK,
 		"code": code,

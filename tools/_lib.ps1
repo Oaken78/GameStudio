@@ -33,6 +33,22 @@ function Get-GodotBin {
     throw 'Godot binary not found. Set GODOT_BIN to the *_console.exe (env block of .claude/settings.json or .claude/settings.local.json).'
 }
 
+# Finds a gdtoolkit executable (gdformat, gdlint): PATH first, then $env:GDTOOLKIT_BIN, then pip --user script dirs.
+function Get-GdTool {
+    param([string]$Tool = 'gdformat')
+    $cmd = Get-Command $Tool -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    $dirs = @()
+    if ($env:GDTOOLKIT_BIN) { $dirs += $env:GDTOOLKIT_BIN }
+    if ($env:APPDATA) { $dirs += @(Get-ChildItem (Join-Path $env:APPDATA 'Python') -Directory -Filter 'Python3*' -ErrorAction SilentlyContinue | ForEach-Object { Join-Path $_.FullName 'Scripts' }) }
+    if ($env:LOCALAPPDATA) { $dirs += @(Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs\Python') -Directory -Filter 'Python3*' -ErrorAction SilentlyContinue | ForEach-Object { Join-Path $_.FullName 'Scripts' }) }
+    foreach ($d in $dirs) {
+        $exe = Join-Path $d ($Tool + '.exe')
+        if (Test-Path $exe) { return $exe }
+    }
+    return $null
+}
+
 function Format-GodotArg {
     param([string]$Value)
     if ($Value -eq '') { return '""' }
