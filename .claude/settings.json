@@ -10,7 +10,9 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
   },
   "permissions": {
+    "additionalDirectories": ["C:/game-dev/games"],
     "allow": [
+      "Edit(//c/game-dev/games/**)",
       "Edit(./games/**)",
       "Edit(./docs/**)",
       "Edit(./templates/**)",
@@ -18,6 +20,18 @@
       "Edit(./.claude/**)",
       "Edit(./CLAUDE.md)",
       "Edit(./README.md)",
+      "PowerShell(Get-CimInstance:*)",
+      "PowerShell(Get-Date:*)",
+      "PowerShell(Get-Process:*)",
+      "PowerShell(git -C * status *)",
+      "PowerShell(git -C * log *)",
+      "PowerShell(git -C * diff *)",
+      "PowerShell(git -C * show *)",
+      "PowerShell(git -C * branch *)",
+      "PowerShell(git -C * add *)",
+      "PowerShell(git -C * commit *)",
+      "PowerShell(./tools/game-worktree.ps1:*)",
+      "PowerShell(.\\tools\\game-worktree.ps1:*)",      
       "PowerShell(git status:*)",
       "PowerShell(git diff:*)",
       "PowerShell(git log:*)",
@@ -70,11 +84,11 @@
       "WebFetch(domain:code.claude.com)",
       "WebFetch(domain:gut.readthedocs.io)",
       "WebFetch(domain:github.com)",
-      "Agent(isolation:worktree)"
+      "Agent(isolation:worktree)",
+      "PowerShell(git push:*)",
+      "Bash(git push:*)"
     ],
     "ask": [
-      "PowerShell(git push:*)",
-      "Bash(git push:*)",
       "PowerShell(git rebase:*)",
       "PowerShell(git reset:*)",
       "PowerShell(git clean:*)",
