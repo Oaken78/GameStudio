@@ -9,6 +9,7 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
 - `./tools/test.ps1 -Game <g> [-File test/unit/test_x.gd] [-Test name]`  GUT unit tests, headless
 - `./tools/smoke.ps1 -Game <g> [-Scenario name]`  headless scenario run (log scan, metrics)
 - `./tools/shots.ps1 -Game <g> [-Scenario name]`  windowed run with screenshots (a game window opens; expected)
+- `./tools/pixels.ps1 -Image <png>[,<png>] label=x:y ... [-Column x -Rows a,b]`  pixel colors and luma; never ad-hoc `Add-Type` scripts
 - `./tools/import.ps1 -Game <g>`  once per fresh clone or worktree (verify/test call it when `.godot/` is missing)
 - `./tools/new-game.ps1 -Name <n>`  scaffold a game from `templates/game-template` (runs `git init`)
 - `./tools/game-worktree.ps1 -Game <g> [-Branch b] [-Remove]`  check out a game branch as `games/<g>--<branch>`

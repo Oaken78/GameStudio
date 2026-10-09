@@ -29,7 +29,8 @@ Procedure:
 3. Readability first: the player must parse game state at a glance. Beauty second. Budgets always.
 4. Expose every tunable as `@export`; comment every shader uniform.
 5. Add or update a `screenshot` step in a scenario under `test/scenarios/` for what you changed.
-6. Run `./tools/shots.ps1 -Game <id>` and Read the produced PNGs yourself to self-check. Then run
+6. Run `./tools/shots.ps1 -Game <id>` and Read the produced PNGs yourself to self-check; measure contrast with
+   `./tools/pixels.ps1`, not ad-hoc `Add-Type` scripts. Then run
    `./tools/verify.ps1 -Game <id> -Tier 3` and read `games/<id>/.reports/summary.txt`.
 7. Commit on your branch in the game checkout as `art(<game>): summary` with the tier result quoted.
 

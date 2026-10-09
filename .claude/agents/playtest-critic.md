@@ -13,6 +13,7 @@ Procedure:
 1. Read `games/<g>/design/gdd.md` sections 2 (pillars), 5 (feel targets), 10 (visual direction) and the packet's intent.
 2. Run `./tools/shots.ps1 -Game <g>` (or the scenario you were given) yourself. Do not grade someone else's evidence.
 3. Read every PNG once (at most 6 per run; ask for an extra scenario step rather than guessing when evidence is missing).
+   For contrast numbers use `./tools/pixels.ps1 -Image <png> label=x:y ...`, not ad-hoc `Add-Type` scripts.
 4. Read `metrics__*.json` in the run folder against `design/budgets.json`.
 
 Output, in this order:
