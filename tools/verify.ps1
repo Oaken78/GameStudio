@@ -28,7 +28,10 @@ function Add-Line { param([string]$s) $script:lines += $s }
 
 if ($t -ge 1) {
     $scripts = @(Get-ChangedScripts -Files $files -GameRel $gameRel)
-    if ($Tier -ne 'auto') { $scripts = @() }
+    # An explicit -Tier skips the per-script format and parse checks (changed scripts still load in the tests and
+    # smoke runs, whose log scan catches parse errors); -Tier auto runs them on the changed scripts.
+    $perScript = ($Tier -eq 'auto')
+    if (-not $perScript) { $scripts = @() }
     # format check (only when gdformat is installed)
     $gdformat = Get-GdTool 'gdformat'
     if ($gdformat) {
@@ -39,7 +42,8 @@ if ($t -ge 1) {
             $null = & $gdformat --check $full 2>&1
             if ($LASTEXITCODE -ne 0) { $bad++; $ok = $false; Add-Line "FORMAT FAIL $s (run: gdformat $s)" }
         }
-        Add-Line "format: checked $($scripts.Count) changed scripts, $bad need formatting"
+        if ($perScript) { Add-Line "format: checked $($scripts.Count) changed scripts, $bad need formatting" }
+        else { Add-Line 'format: skipped (explicit -Tier; use -Tier auto for per-script checks)' }
     } else {
         Add-Line 'format: gdformat not installed, skipped (pip install "gdtoolkit==4.*")'
     }
@@ -56,7 +60,8 @@ if ($t -ge 1) {
             Add-Line "PARSE WARN $s exit=$($pr.ExitCode) $first"
         }
     }
-    Add-Line "parse: checked $parsed changed scripts (advisory)"
+    if ($perScript) { Add-Line "parse: checked $parsed changed scripts (advisory)" }
+    else { Add-Line 'parse: skipped (explicit -Tier; scripts still load in tests and smoke, whose log scan catches parse errors)' }
     # unit tests
     $testArgs = @{ Game = $Game; Root = $root; Quiet = $true }
     if ($t -eq 1) {

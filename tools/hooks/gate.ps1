@@ -1,7 +1,9 @@
 # SubagentStop hook on gameplay-dev / visuals-dev (declared as Stop in their frontmatter).
-# Runs tier <= 1 verification for every game checkout on the subagent's branch and blocks the stop when it fails.
-# Games are separate git repos under games/ in the main checkout; an implementer in Claude worktree branch
-# worktree-<name> works in games/<g>--worktree-<name> on the same branch name (tools/game-worktree.ps1).
+# Runs tier <= 1 verification for the game checkouts the subagent works in and blocks the stop when it fails.
+# Games are separate git repos under games/; an implementer checks its branch out as games/<g>--<branch> with
+# tools/game-worktree.ps1, which prints "GAME <id>". The hook finds those ids in the subagent's own transcript
+# (agent_transcript_path). Fallback for an agent in a Claude worktree on branch worktree-<name>: a checkout on that
+# same branch. A checkout on main is never checked (developers run from the root repo, which sits on main).
 # Cached by diff hash in games/<id>/.reports/gate-stamp.json, so stopping again after a green run costs nothing.
 # Exits 0 in every case; a broken hook must never trap an agent.
 $ErrorActionPreference = 'Continue'
@@ -19,18 +21,30 @@ try {
 
     Push-Location $cwd
     try { $branch = git branch --show-current } finally { Pop-Location }
-    if (-not $branch) { exit 0 }
     $root = Get-RepoRoot
     $gamesDir = Join-Path $root 'games'
     if (-not (Test-Path $gamesDir)) { exit 0 }
+    $ids = New-Object 'System.Collections.Generic.HashSet[string]'
+    $tp = [string]$j.agent_transcript_path
+    if ($tp -and (Test-Path $tp)) {
+        foreach ($m in @(Select-String -Path $tp -Pattern 'GAME ([A-Za-z0-9_]+--[A-Za-z0-9._-]+)' -AllMatches)) {
+            foreach ($mm in $m.Matches) { $null = $ids.Add($mm.Groups[1].Value) }
+        }
+    }
 
     foreach ($d in @(Get-ChildItem $gamesDir -Directory)) {
         $proj = $d.FullName
         if (-not (Test-Path (Join-Path $proj 'project.godot'))) { continue }
         if (-not (Test-Path (Join-Path $proj '.git'))) { continue }
+        if (-not $ids.Contains($d.Name)) {
+            if (-not $branch -or $branch -eq 'main' -or $branch -eq 'master') { continue }
+            Push-Location $proj
+            try { $b = git branch --show-current } finally { Pop-Location }
+            if ($b -ne $branch) { continue }
+        }
         Push-Location $proj
         try { $b = git branch --show-current } finally { Pop-Location }
-        if ($b -ne $branch) { continue }
+        if ($b -eq 'main' -or $b -eq 'master') { continue }
 
         $files = @(Get-ChangedFiles -Root $root -GameRel ('games/' + $d.Name))
         if ($files.Count -eq 0) { continue }
