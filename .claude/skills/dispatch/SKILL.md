@@ -1,7 +1,6 @@
 ---
 name: dispatch
 description: Run ready task packets in parallel implementer subagents (gameplay-dev or visuals-dev), each in its own worktree, then test, review and report. Max 3 at once.
-disable-model-invocation: true
 argument-hint: <game> <packet ids | ready>
 ---
 Dispatch packets `$1` for game `$0` (`ready` means every packet with status `ready` in `design/plan.md`).
