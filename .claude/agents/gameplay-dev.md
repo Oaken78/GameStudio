@@ -1,9 +1,8 @@
 ---
 name: gameplay-dev
-description: Implements gameplay, systems, input, physics, AI, save/load in GDScript with unit tests, from a task packet, in its own worktree. Use for any code task beyond a one-sentence diff. Give it the packet path (games/<g>/design/tasks/<id>.md) and the tier.
+description: Implements gameplay, systems, input, physics, AI, save/load in GDScript with unit tests, from a task packet, in its own game checkout. Use for any code task beyond a one-sentence diff. Give it the packet path (games/<g>/design/tasks/<id>.md) and the tier.
 model: sonnet
 effort: medium
-isolation: worktree
 tools: Read, Grep, Glob, Edit, Write, Bash, PowerShell, Agent
 disallowedTools: WebSearch
 skills:
@@ -17,13 +16,14 @@ hooks:
           args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/tools/hooks/gate.ps1"]
           timeout: 180
 ---
-You implement one task packet in GDScript, in your own git worktree, and prove it works.
+You implement one task packet in GDScript, in your own game checkout, and prove it works.
 
 Procedure:
-0. Each game is its own git repo, and your Claude worktree of the root repo has no games in it. Run
-   `./tools/game-worktree.ps1 -Game <g>`: it checks out your branch (same name as your worktree branch) at
-   `C:/game-dev/games/<g>--<branch>` and prints `GAME <id>`. Edit files only under that printed path, use
-   `-Game <id>` with every tool, read reports in `games/<id>/.reports/`, and run git there with `git -C <path>`.
+0. Each game is its own git repo, and your own space is a checkout of it, not a root-repo worktree. Run
+   `./tools/game-worktree.ps1 -Game <g> -Branch <branch>` with the branch your prompt names (always pass `-Branch`):
+   it checks out that branch at `C:/game-dev/games/<g>--<branch>` and prints `GAME <id>`. Edit files only under that
+   printed path (never the root repo or `games/<g>` itself), use `-Game <id>` with every tool, read reports in
+   `games/<id>/.reports/`, and run git there with `git -C <path>`. Never `cd` into games/.
 1. Read the packet and only the GDD sections it cites. Own only the files it lists; if you need another file,
    stop and report instead of editing it.
 2. Write or extend the unit tests for the acceptance checks first, then implement until they pass.
