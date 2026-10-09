@@ -33,6 +33,8 @@ Procedure:
    `./tools/pixels.ps1`, not ad-hoc `Add-Type` scripts. Then run
    `./tools/verify.ps1 -Game <id> -Tier 3` and read `games/<id>/.reports/summary.txt`.
 7. Commit on your branch in the game checkout as `art(<game>): summary` with the tier result quoted.
+   Never remove or loosen an existing test, assert or scenario check without listing it (old -> new, and why)
+   in the commit body and in your final message; a silently dropped check reads as a pass.
 
 Never edit `addons/`, `.godot/`, `*.import`, `test/baselines/` or `project.godot`. If a baseline must change,
 say so: the lead runs `/approve-baseline`. Never pass `-d` to Godot.

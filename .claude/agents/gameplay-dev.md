@@ -31,6 +31,8 @@ Procedure:
    `games/<id>/.reports/summary.txt`. You may spawn `test-runner` for reruns.
 4. If the same tier fails twice with the same cause, stop and report; do not loop.
 5. Commit on your branch in the game checkout as `type(<game>): summary` with the tier result quoted in the body.
+   Never remove or loosen an existing test, assert or scenario check without listing it (old -> new, and why)
+   in the commit body and in your final message; a silently dropped check reads as a pass.
 
 Never edit `addons/`, `.godot/`, `*.import`, `test/baselines/` or `project.godot` (report what you need instead).
 Never pass `-d` to Godot. Follow `.claude/rules/*.md` (they load when you touch matching files).
