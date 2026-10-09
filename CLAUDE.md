@@ -13,6 +13,9 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
 - `./tools/import.ps1 -Game <g>`  once per fresh clone or worktree (verify/test call it when `.godot/` is missing)
 - `./tools/new-game.ps1 -Name <n>`  scaffold a game from `templates/game-template` (runs `git init`)
 - `./tools/game-worktree.ps1 -Game <g> [-Branch b] [-Remove]`  check out a game branch as `games/<g>--<branch>`
+- Shapes that run without a prompt: `./tools/<t>.ps1` (or `C:/game-dev/tools/<t>.ps1` from any folder), `git -C <path> ...`,
+  and pipes into `Select-Object`, `Select-String`, `Out-Null`. These always prompt: `& <tool>`, `Set-Location`/`cd`
+  before a command, `ForEach-Object { }` (use `Select-Object -ExpandProperty`). Write paths out instead of `$var = ...`.
 
 ## Verification tiers (`-Tier auto` picks from the diff; go up when unsure, never down)
 - 0 docs/design only: nothing.  1 one script, no scene: format + parse + unit tests.
