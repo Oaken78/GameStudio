@@ -15,4 +15,5 @@ Dispatch packets `$1` for game `$0` (`ready` means every packet with status `rea
    `code-reviewer` if tier 2+; then `playtest-critic` if tier 3. Blocking findings go back to the same
    implementer with the findings quoted.
 4. Report a table: id, branch, tier result, review verdict, open questions. Set status `review-passed`.
-5. Suggest `/merge-branch $0 <branch>` for each passing packet. Never merge without being asked.
+5. Merge each review-passed packet by the merge-branch steps (standing permission; deleting a branch still needs
+   Klas), then approve the baselines the playtest-critic recommends by the approve-baseline steps.
