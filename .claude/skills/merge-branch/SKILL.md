@@ -1,7 +1,6 @@
 ---
 name: merge-branch
 description: Merge a reviewed implementer branch into the game repo's main safely (PR + squash with gh when the game repo has a remote, local --no-ff otherwise), re-verify main, remove the branch checkout, update plan.md.
-disable-model-invocation: true
 argument-hint: <game> <branch>
 ---
 Merge branch `$1` of game `$0`. Each game is its own git repo at `games/$0`; run every git command there
