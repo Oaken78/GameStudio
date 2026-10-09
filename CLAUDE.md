@@ -34,6 +34,8 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
 - Klas does no hands-on work. Edits (including `project.godot`), commands and commits belong to the lead or an
   agent. When a guard blocks an edit, ask Klas to authorize it and then make it yourself; only
   `.claude/settings.json` stays Klas's to apply.
+- Klas plays remotely: every build for Klas goes out by the `playtest-build` skill (a temporary `playtest` branch on
+  the game's GitHub repo, deleted once Klas has saved it).
 - Plan first for anything beyond a one-sentence diff. Tell Klas when to `/clear` (task done, decisions in files,
   work committed) or `/compact` (long session mid-task); only Klas can type them.
 
