@@ -5,10 +5,13 @@ Owner: Klas, senior game designer. Explain choices in design terms; prefer borin
 Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `tools/*.ps1`, never by hand.
 
 ## Commands (PowerShell, from the repo root)
-- `./tools/verify.ps1 -Game <g> -Tier auto|0|1|2|3`  run the checks; result in `games/<g>/.reports/summary.txt`
+- `./tools/verify.ps1 -Game <g> -Tier auto|0|1|2|3`  run the checks; result in `games/<g>/.reports/summary.txt`, whose
+  header records `commit=` and `tree=clean|dirty`. `-Scenario a,b|none`: scoped run (tests + those scenarios) into
+  `summary-scoped.txt`, never summary.txt. `-CheckFresh`: FRESH when summary.txt is a PASS of HEAD at that tier or higher
 - `./tools/test.ps1 -Game <g> [-File test/unit/test_x.gd] [-Test name]`  GUT unit tests, headless
-- `./tools/smoke.ps1 -Game <g> [-Scenario name]`  headless scenario run (log scan, metrics)
-- `./tools/shots.ps1 -Game <g> [-Scenario name]`  windowed run with screenshots (a game window opens; expected)
+- `./tools/smoke.ps1 -Game <g> [-Scenario a,b] [-Jobs 3]`  headless scenario runs, 3 at a time; timing-sensitive ones alone after
+- `./tools/shots.ps1 -Game <g> [-Scenario a,b]`  windowed run with screenshots (a game window opens; expected). Without
+  `-Scenario` only scenarios with a screenshot or metrics step. One window at a time on the machine (a lock; it may wait)
 - `./tools/pixels.ps1 -Image <png>[,<png>] label=x:y ... [-Column x -Rows a,b]`  pixel colors and luma; never ad-hoc `Add-Type` scripts
 - `./tools/import.ps1 -Game <g> [-Force]`  once per fresh clone or worktree (verify/test call it when `.godot/` is missing);
   `-Force` after a merge or a new `class_name`: a stale class cache makes GUT skip test files while test.ps1 still says PASS
@@ -25,6 +28,9 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
 - 2 feature, several files, scene or project.godot: 1 + full unit + headless smoke scenarios.
 - 3 anything the player sees or feels (shader, UI, art, juice) or a milestone: 2 + screenshots + playtest-critic + code-reviewer.
 - Evidence or it did not happen: quote the command and the summary.txt lines. Never say "tests pass" without them.
+- One full run per commit, at every tier (Klas, 2026-10-11): implementers iterate with tier 2 plus `shots.ps1 -Scenario`
+  for their own scenarios, commit, then run the full tier once on the clean tree. The test-runner reuses that run when
+  `-CheckFresh` says FRESH and re-runs only the tests and the packet's scenarios (`-Scenario`); otherwise the full tier.
 - Screenshot baselines are the lead's call, not Klas's: once the playtest-critic recommends a shot and the lead has
   looked at it, follow the approve-baseline steps on the game's main (scoped with `-Scenario`) and report it.
 

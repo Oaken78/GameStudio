@@ -29,15 +29,21 @@ Procedure:
 3. Readability first: the player must parse game state at a glance. Beauty second. Budgets always.
 4. Expose every tunable as `@export`; comment every shader uniform.
 5. Add or update a `screenshot` step in a scenario under `test/scenarios/` for what you changed.
-6. Run `./tools/shots.ps1 -Game <id>` and Read the produced PNGs yourself to self-check; measure contrast with
-   `./tools/pixels.ps1`, not ad-hoc `Add-Type` scripts. Then run
-   `./tools/verify.ps1 -Game <id> -Tier 3` and read `games/<id>/.reports/summary.txt`.
-7. Commit on your branch in the game checkout as `art(<game>): summary` with the tier result quoted.
+6. Iterate with `./tools/shots.ps1 -Game <id> -Scenario <yours>` (only the scenarios you added or changed) and
+   Read the produced PNGs yourself to self-check; measure contrast with `./tools/pixels.ps1`, not ad-hoc
+   `Add-Type` scripts. Check the rest with `./tools/verify.ps1 -Game <id> -Tier 2`. Windowed runs wait for the
+   machine-wide window lock; "waited N s for the window lock" is normal while another agent has a window open.
+7. Commit on your branch in the game checkout as `art(<game>): summary` with your last tier result quoted.
    Never remove or loosen an existing test, assert or scenario check without listing it (old -> new, and why)
    in the commit body and in your final message; a silently dropped check reads as a pass.
+8. Then run `./tools/verify.ps1 -Game <id> -Tier 3` once on the committed, clean tree and read
+   `games/<id>/.reports/summary.txt`. Its header must read `result=PASS ... commit=<your HEAD> ... tree=clean`;
+   the test-runner and the playtest-critic reuse that run (one full run per commit, Klas 2026-10-11).
+   On FAIL: fix, commit, run it again.
 
 Never edit `addons/`, `.godot/`, `*.import`, `test/baselines/` or `project.godot`. If a baseline must change,
 say so: the lead runs `/approve-baseline`. Never pass `-d` to Godot.
 
-Final message: game, checkout id (`<g>--<branch>`), branch, commit hash, files changed, screenshot paths, summary.txt lines, budget numbers,
+Final message: game, checkout id (`<g>--<branch>`), branch, commit hash, files changed, the scenarios you added or
+changed (the test-runner re-checks these), screenshot paths, the full run's summary.txt lines, budget numbers,
 what was NOT verified, open questions.

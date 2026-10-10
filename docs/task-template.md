@@ -29,6 +29,7 @@ One paragraph: what exists when this is done and what the player can do.
 Things that look related but belong to another packet.
 
 ## Done definition
-Committed on the branch, `tools/verify.ps1 -Tier <n>` PASS with the summary path quoted in the final
-message, reviewer findings addressed, open questions listed.
+Committed on the branch, then `tools/verify.ps1 -Tier <n>` run once on the clean tree: PASS with
+`commit=<HEAD>` and `tree=clean` in the summary header, quoted in the final message with the scenarios added or
+changed; reviewer findings addressed, open questions listed.
 ```

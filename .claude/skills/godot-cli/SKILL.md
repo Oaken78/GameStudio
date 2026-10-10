@@ -51,4 +51,22 @@ Input injection works headless on 4.7.2 (verified by tools/selftest.ps1), so inp
 Screenshot compare RMSE is on a 0-255 scale (identical frames = 0; a 48 px square moved 120 px = 8.8); the
 threshold lives in `design/budgets.json` under `screens.rmse_threshold` (default 1.0).
 Harness exit codes: 0 ok, 10 assertion failed, 11 engine error counted, 12 timeout, 13 scenario could not load.
-The wrapper adds 124 for a process timeout. Output: `result.json`, `metrics__<name>.json`, `<shot>.png`, `godot.log`.
+The wrapper adds 124 for a process timeout and 125 when a windowed run gave up on the window lock.
+Output: `result.json`, `metrics__<name>.json`, `<shot>.png`, `godot.log`.
+Top-level `"serial": true` makes smoke run the scenario alone (for a wall-clock number the rule below misses).
+
+## tools/ options (verify, smoke, shots)
+- `verify.ps1 -Game <g> -Tier <n>`: full run; `.reports/summary.txt` header records `commit=`, `content=` (tree
+  hash) and `tree=clean|dirty|changed`. `-Scenario a,b` (or `none`): scoped run, the tier's tests plus only those
+  scenarios, written to `summary-scoped.txt` (never summary.txt). `-CheckFresh`: runs nothing, prints FRESH (exit 0)
+  when summary.txt is a PASS at `-Tier` or higher of HEAD's content on a clean tree, else STALE (exit 1).
+  `-Jobs n` passes to smoke. The stop gate writes `summary-gate.txt` and skips when summary.txt is FRESH.
+- `smoke.ps1 [-Scenario a,b] [-Jobs 3]`: headless, 3 scenarios at a time, each in its own process and folder; then
+  the timing-sensitive ones alone: a `metrics` step, an `assert_prop` on `*_ms`, `*_usec`, `*_frames`, `*fps*` or
+  `*per_frame*`, a name `perf_*`, `world_stream*` or `frame_cold`, or `"serial": true` (`*_s` and tick counts are
+  game time under `--fixed-fps`, so they stay parallel). Output order is the scenario order. `-Jobs 1` = one at a time.
+- `shots.ps1 [-Scenario a,b] [-LockTimeoutSec 1800]`: without `-Scenario` only scenarios with a `screenshot` or
+  `metrics` step run (the skipped ones are listed in one line); a named scenario always runs.
+- Window lock: every windowed Godot launch through the tools (shots, `smoke -Windowed`, `godot.ps1` without
+  `--headless`) holds a machine-wide named mutex for one scenario, so windows never fight over the mouse.
+  "waited N s for the window lock" is recorded; after `-LockTimeoutSec` the run FAILs. Headless runs never wait.
