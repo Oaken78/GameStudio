@@ -3,8 +3,12 @@
 Copy to `games/<name>/design/gdd.md`. Write numbers, not adjectives. Keep sections short; link references.
 `/gdd <name>` fills this in through an interview.
 
-## 1. One-liner and player fantasy
-One sentence for the store page. One sentence for what the player feels like doing.
+## 1. One-liner, player fantasy, story and main goal
+One sentence for the store page. One sentence for what the player feels like doing. Then:
+- Story: the premise in one paragraph: who the player is, what happened to the world, who else lives in it.
+- Main goal: the larger reason to keep playing, in one sentence, and how the player sees progress toward it. The
+  core loop alone is not that reason.
+- How the world tells it: places, characters, found objects, text. Write "none" only on purpose.
 
 ## 2. Pillars (max 3)
 Each pillar: name, one line, and "we cut X before we compromise this".

@@ -8,7 +8,8 @@ Write or refresh the GDD for `$0` (section `$1` only if given). Use `docs/gdd-te
 and the existing `games/$0/design/gdd.md` as the starting point.
 
 Interview with AskUserQuestion, hard parts first, no obvious questions:
-1. Player fantasy and the one risk hypothesis (why is it fun, what kills it if wrong).
+1. Player fantasy, the story and main goal (the larger reason to keep playing), and the one risk hypothesis
+   (why is it fun, what kills it if wrong).
 2. Core loop at 30 s / 5 min / session; the failure state.
 3. Feel targets as numbers; verbs and input map action names.
 4. Visual direction: readability rules, palette, three references.

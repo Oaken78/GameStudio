@@ -2,7 +2,11 @@
 
 Filled in by `/gdd <name>`. Write numbers, not adjectives. Keep sections short; link references in `design/refs/`.
 
-## 1. One-liner and player fantasy
+## 1. One-liner, player fantasy, story and main goal
+- Store line:
+- Fantasy:
+- Story:
+- Main goal:
 
 ## 2. Pillars (max 3)
 Each pillar: name, one line, and "we cut X before we compromise this".
