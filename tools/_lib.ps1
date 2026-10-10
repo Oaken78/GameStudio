@@ -404,10 +404,11 @@ function Get-ScenarioNames {
 # What a scenario needs from the runners, read from its JSON:
 #   Windowed: it has a "screenshot" or "metrics" step, so a windowed run adds something. shots.ps1 without
 #     -Scenario (a full tier 3 run) runs only these; every scenario still runs headless in smoke.
-#   Serial: its numbers depend on wall-clock speed, so smoke runs it alone after the parallel batch. Rule:
-#     a "metrics" step; an assert_prop on a property named *_ms, *_usec or *_frames, or containing fps or
-#     per_frame; a name perf_*, world_stream* or frame_cold; or "serial": true at the top of the JSON.
-#     (*_s values and tick counts are game time under --fixed-fps 60, so CPU load does not move them.)
+#   Serial: smoke runs it alone after the parallel batch (lead decision, 2026-10-11). Rule: a "metrics" step
+#     (budgets read its frame times); a name perf_*, world_stream* (streaming waits on worker threads) or
+#     frame_cold; or "serial": true at the top of the JSON. Everything else runs in parallel, including asserts on
+#     *_ms or *_usec tick costs: when one of those fails there, smoke re-runs the scenario alone once
+#     (Get-TimingOnlyFailure). Frame and tick counts and *_s values are game time under --fixed-fps 60.
 #   SerialWhy names the rule that matched. An unreadable JSON counts as both; the harness then reports the error.
 function Get-ScenarioInfo {
     param([string]$ProjectDir, [string]$Name)
@@ -429,12 +430,30 @@ function Get-ScenarioInfo {
             $windowed = $true
             if (-not $why) { $why = 'metrics step' }
         }
-        if (-not $why -and ($keys -contains 'assert_prop')) {
-            $prop = [string]$step.assert_prop.prop
-            if ($prop -match '(_ms|_usec|_frames)$' -or $prop -match 'fps|per_frame') { $why = "asserts $prop" }
-        }
     }
     return [pscustomobject]@{ Name = $Name; Windowed = $windowed; Serial = ($why -ne ''); SerialWhy = $why }
+}
+
+# A failed scenario run whose only failures are wall-clock asserts: harness exit 10, no engine errors, no timeout,
+# and every failing step an assert_prop on a property named *_ms or *_usec, or containing fps or per_frame. Returns
+# those steps ("step <n> <detail>", joined with '; '), or '' for any other outcome. Load from the other parallel
+# runs can move such numbers, so smoke re-runs these alone once.
+function Get-TimingOnlyFailure {
+    param([string]$ProjectDir, $Res)
+    if ($Res.Ok -or $Res.TimedOut -or $Res.ExitCode -ne 10 -or $null -eq $Res.Result -or $Res.ErrorLines.Count -gt 0) { return '' }
+    $json = $null
+    try { $json = Get-Content (Join-Path $ProjectDir ('test\scenarios\' + $Res.Scenario + '.json')) -Raw -ErrorAction Stop | ConvertFrom-Json } catch { return '' }
+    $steps = @($json.steps)
+    $parts = @()
+    foreach ($s in @($Res.Result.steps)) {
+        if ($s.status -ne 'fail') { continue }
+        $i = [int]$s.index - 1
+        if ($i -lt 0 -or $i -ge $steps.Count -or $null -eq $steps[$i].assert_prop) { return '' }
+        $prop = [string]$steps[$i].assert_prop.prop
+        if ($prop -notmatch '(_ms|_usec)$' -and $prop -notmatch 'fps|per_frame') { return '' }
+        $parts += "step $($s.index) $($s.detail)"
+    }
+    return ($parts -join '; ')
 }
 
 # Compares metrics__*.json in a run folder against design/budgets.json. Returns BUDGET FAIL lines.

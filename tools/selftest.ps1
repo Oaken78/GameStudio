@@ -242,7 +242,7 @@ Invoke-Step 'scenario-rules' {
     try {
         # expected Windowed/Serial per scenario
         $expect = [ordered]@{ boot = 'True/True'; move_right = 'True/False'; zz_rule_plain = 'False/False'
-            zz_rule_ms = 'False/True'; zz_rule_flag = 'False/True'; perf_zz_rule = 'False/True' }
+            zz_rule_ms = 'False/False'; zz_rule_flag = 'False/True'; perf_zz_rule = 'False/True' }
         $bad = @()
         foreach ($k in $expect.Keys) {
             $info = Get-ScenarioInfo -ProjectDir $proj -Name $k
@@ -253,7 +253,7 @@ Invoke-Step 'scenario-rules' {
     } finally {
         foreach ($k in $made.Keys) { Remove-Item (Join-Path $sdir "$k.json") -Force }
     }
-    return 'windowed: screenshot or metrics step; alone: metrics step, *_ms assert, perf_* name, "serial": true'
+    return 'windowed: screenshot or metrics step; alone: metrics step, perf_* name, "serial": true; a *_ms assert stays parallel'
 }
 
 Invoke-Step 'smoke-parallel' {
@@ -261,18 +261,24 @@ Invoke-Step 'smoke-parallel' {
     $tdir = Join-Path $proj 'test'
     # zz_slow takes 50 ms a frame (hits the 8 s process timeout); zz_quit exits before the harness finishes (a crash,
     # as far as the tools can tell); zz_p_fail fails an assert. They run 3 at a time next to passing ones.
+    # zz_cost fakes wall-clock asserts: cost_ms fails in the parallel batch and passes in the alone retry (its --out
+    # folder ends in --alone); stuck_ms fails both times. zz_p_fail (position:x) must not be retried.
     $made = @{
         'zz_slow.gd'   = "extends Node`n`n`nfunc _process(_delta: float) -> void:`n`tOS.delay_msec(50)`n"
         'zz_quit.gd'   = "extends Node`n`n`nfunc _ready() -> void:`n`tget_tree().quit(3)`n"
         'zz_slow.tscn' = "[gd_scene format=3]`n`n[ext_resource type=`"Script`" path=`"res://test/zz_slow.gd`" id=`"1`"]`n`n[node name=`"Slow`" type=`"Node`"]`nscript = ExtResource(`"1`")`n"
+        'zz_cost.gd'   = "extends Node`n`nvar cost_ms: float = 5.0`nvar stuck_ms: float = 5.0`n`n`nfunc _ready() -> void:`n`tfor a: String in OS.get_cmdline_user_args():`n`t`tif a.begins_with(`"--out=`") and a.ends_with(`"--alone`"):`n`t`t`tcost_ms = 0.5`n"
+        'zz_cost.tscn' = "[gd_scene format=3]`n`n[ext_resource type=`"Script`" path=`"res://test/zz_cost.gd`" id=`"1`"]`n`n[node name=`"Cost`" type=`"Node`"]`nscript = ExtResource(`"1`")`n"
         'zz_quit.tscn' = "[gd_scene format=3]`n`n[ext_resource type=`"Script`" path=`"res://test/zz_quit.gd`" id=`"1`"]`n`n[node name=`"Quit`" type=`"Node`"]`nscript = ExtResource(`"1`")`n"
         'scenarios\zz_p_ok.json'   = '{"scene":"res://scenes/main.tscn","timeout_frames":600,"steps":[{"wait_frames":5},{"assert_no_errors":true}]}'
         'scenarios\zz_p_fail.json' = '{"scene":"res://scenes/main.tscn","timeout_frames":600,"steps":[{"wait_frames":5},{"assert_prop":{"node":"Player","prop":"position:x","op":"==","value":-12345}}]}'
         'scenarios\zz_p_slow.json' = '{"scene":"res://test/zz_slow.tscn","timeout_frames":7100,"steps":[{"wait_frames":7000}]}'
         'scenarios\zz_p_quit.json' = '{"scene":"res://test/zz_quit.tscn","timeout_frames":600,"steps":[{"wait_frames":30}]}'
+        'scenarios\zz_p_cost.json' = '{"scene":"res://test/zz_cost.tscn","timeout_frames":600,"steps":[{"wait_frames":5},{"assert_prop":{"node":".","prop":"cost_ms","op":"<=","value":1.0}}]}'
+        'scenarios\zz_p_stuck.json' = '{"scene":"res://test/zz_cost.tscn","timeout_frames":600,"steps":[{"wait_frames":5},{"assert_prop":{"node":".","prop":"stuck_ms","op":"<=","value":1.0}}]}'
     }
     foreach ($k in $made.Keys) { [System.IO.File]::WriteAllText((Join-Path $tdir $k), $made[$k]) }
-    $order = @('zz_p_ok', 'zz_p_fail', 'zz_p_slow', 'boot', 'zz_p_quit', 'move_right')
+    $order = @('zz_p_ok', 'zz_p_fail', 'zz_p_slow', 'boot', 'zz_p_quit', 'move_right', 'zz_p_cost', 'zz_p_stuck')
     $godotDir = Join-Path $proj '.godot'
     $started = Get-Date
     try {
@@ -290,7 +296,7 @@ Invoke-Step 'smoke-parallel' {
     $seen = @($smokeLines | ForEach-Object { ($_ -split ' ')[1] }) -join ','
     if ($seen -ne ($order -join ',')) { throw "summary order $seen, expected $($order -join ',')" }
     $want = [ordered]@{ zz_p_ok = '* PASS *'; zz_p_fail = '* FAIL *'; zz_p_slow = '* FAIL exit=124 *'; boot = '* PASS *'
-        zz_p_quit = '* FAIL exit=3 *'; move_right = '* PASS *' }
+        zz_p_quit = '* FAIL exit=3 *'; move_right = '* PASS *'; zz_p_cost = '* PASS *'; zz_p_stuck = '* FAIL exit=10 *' }
     foreach ($n in $want.Keys) {
         $l = @($smokeLines | Where-Object { $_ -like "SMOKE $n *" })[0]
         if ($l -notlike $want[$n]) { throw "SMOKE $n line '$l' does not match '$($want[$n])'" }
@@ -298,12 +304,16 @@ Invoke-Step 'smoke-parallel' {
     if ($all -notlike '*step 2 assert_prop: fail*') { throw "the failed assert step is not listed: $all" }
     if ($all -notlike '*did not finish (timeout=True)*') { throw "the timeout is not reported: $all" }
     $runLine = @($sum | Where-Object { $_ -like 'smoke: *' })
-    if ($runLine.Count -eq 0 -or $runLine[0] -notlike '*5 headless 3 at a time, then 1 alone (timing-sensitive): boot') { throw "unexpected run line: $all" }
+    if ($runLine.Count -eq 0 -or $runLine[0] -notlike '*7 headless 3 at a time (2 retried alone), then 1 alone (*): boot') { throw "unexpected run line: $all" }
+    $retry = @($sum | Where-Object { $_ -like '  retried alone *' })
+    if ($retry.Count -ne 2) { throw ('expected 2 retry lines (zz_p_cost, zz_p_stuck): ' + ($retry -join ' | ')) }
+    if ($retry[0] -notlike '*parallel step 2 *cost_ms is 5*alone PASS*') { throw "zz_p_cost retry line: $($retry[0])" }
+    if ($retry[1] -notlike '*parallel step 2 *stuck_ms is 5*alone step 2 *stuck_ms is 5*') { throw "zz_p_stuck retry line: $($retry[1])" }
     $art = @($sum | Where-Object { $_.StartsWith('artifacts: ') })[0].Substring(11).Trim()
     foreach ($n in $order) { if (-not (Test-Path (Join-Path $art "$n\godot.log"))) { throw "no own godot.log for $n" } }
     $touched = @(Get-ChildItem $godotDir -Recurse -File | Where-Object { $_.LastWriteTime -gt $started })
     if ($touched.Count -gt 0) { throw ('parallel runs wrote into .godot/: ' + (($touched | Select-Object -First 3 -ExpandProperty Name) -join ', ')) }
-    return ($runLine[0] + '; order kept, timeout/crash/assert reported, one log per run, .godot untouched')
+    return ($runLine[0] + '; order kept, timeout/crash/assert reported, wall-clock fails retried alone, one log per run, .godot untouched')
 }
 
 Invoke-Step 'window-lock-timeout' {

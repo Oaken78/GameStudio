@@ -1,9 +1,11 @@
 # Headless scenario runs (tier 2): every test/scenarios/*.json, or the named ones (-Scenario a,b).
 # Verdict per scenario = harness exit 0 AND result.json ok AND zero error lines in the log AND budgets met.
-# Runs -Jobs scenarios at a time (default 3), each in its own Godot process, folder and log. Timing-sensitive
-# scenarios (metrics step, *_ms asserts, perf_*, world_stream*, frame_cold: Get-ScenarioInfo in _lib.ps1) run alone
-# afterwards, one at a time. Lines come out in scenario order whatever the run order. -Jobs 1 runs everything one at
-# a time in that order; -Windowed always does (one window at a time, through the window lock).
+# Runs -Jobs scenarios at a time (default 3, longest first by the previous run's seconds), each in its own Godot
+# process, folder and log. A scenario that failed there only on wall-clock asserts (*_ms, *_usec, fps, per_frame)
+# runs again alone once, and the alone result counts. Scenarios with a metrics step, perf_*, world_stream*,
+# frame_cold or "serial": true (Get-ScenarioInfo in _lib.ps1) run alone afterwards, one at a time. Lines come out
+# in scenario order whatever the run order. -Jobs 1 runs everything one at a time in that order; -Windowed always
+# does (one window at a time, through the window lock).
 # Writes .reports/smoke-<timestamp>/<scenario>/ and .reports/smoke-last.txt. Exit 0 pass, 1 fail.
 param(
     [Parameter(Mandatory = $true)][string]$Game,
@@ -32,6 +34,13 @@ foreach ($n in $names) {
     $info = Get-ScenarioInfo -ProjectDir $proj -Name $n
     if ($Windowed -or $Jobs -le 1 -or $info.Serial) { $serial += $n } else { $parallel += $n }
 }
+# Longest first, by the seconds in the previous smoke-last.txt (scenarios it lacks keep name order, after them).
+$prev = @{}
+$last = Join-Path $reports 'smoke-last.txt'
+if (Test-Path $last) {
+    foreach ($l in Get-Content $last) { if ($l -match '^SMOKE (\S+) \S+ exit=\S+ seconds=([0-9.]+)') { $prev[$Matches[1]] = [double]$Matches[2] } }
+}
+$parallel = @($parallel | Sort-Object -Property @{ Expression = { $prev[$_] }; Descending = $true }, @{ Expression = { [array]::IndexOf($names, $_) } })
 
 # Parallel batch: keep up to $Jobs headless runs going; collect each as it finishes.
 $results = @{}
@@ -51,6 +60,18 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     }
     $running = $still
     if ($running.Count -gt 0) { Start-Sleep -Milliseconds 100 }
+}
+
+# Safety net: a parallel run that failed only on wall-clock asserts runs again alone once; that result counts.
+$retried = @{}
+foreach ($n in $names) {
+    if (-not ($parallel -contains $n)) { continue }
+    $why = Get-TimingOnlyFailure -ProjectDir $proj -Res $results[$n]
+    if (-not $why) { continue }
+    $out = Join-Path $run ($n + '--alone')
+    $null = New-Item -ItemType Directory -Path $out
+    $results[$n] = Invoke-Scenario -ProjectDir $proj -ScenarioName $n -OutDir $out -Seed $Seed -TimeoutSec $TimeoutSec
+    $retried[$n] = $why
 }
 
 # Then the rest, alone and in order. A window lock timeout stops the windowed runs that are left.
@@ -81,6 +102,14 @@ foreach ($n in $names) {
     $status = 'FAIL'
     if ($ok) { $status = 'PASS' }
     $lines += "SMOKE $n $status exit=$($res.ExitCode) seconds=$($res.Seconds) errors=$($res.ErrorLines.Count) frames=$(if ($res.Result) { $res.Result.frames } else { '?' })"
+    if ($retried.ContainsKey($n)) {
+        $aloneSays = 'PASS (within the bar; the harness reports a value only on failure)'
+        if (-not $ok) {
+            $aloneSays = Get-TimingOnlyFailure -ProjectDir $proj -Res $res
+            if (-not $aloneSays) { $aloneSays = "FAIL exit=$($res.ExitCode), see the lines below" }
+        }
+        $lines += "  retried alone after a wall-clock assert failed in parallel: parallel $($retried[$n]); alone $aloneSays"
+    }
     if ($res.LockWaitedSec -ge 1) { $lines += "  waited $($res.LockWaitedSec) s for the window lock" }
     if ($res.LockFailed) {
         $lines += "  $($res.Stderr)"
@@ -106,10 +135,10 @@ $secs = [math]::Round($sw.Elapsed.TotalSeconds, 1)
 if ($parallel.Count -gt 0) {
     $alone = 'none'
     if ($serial.Count -gt 0) { $alone = ($serial -join ', ') }
-    $lines += "smoke: $($names.Count) scenarios in $secs s; $($parallel.Count) headless $Jobs at a time, then $($serial.Count) alone (timing-sensitive): $alone"
+    $lines += "smoke: $($names.Count) scenarios in $secs s; $($parallel.Count) headless $Jobs at a time ($($retried.Count) retried alone), then $($serial.Count) alone (metrics step, perf_*, world_stream*, frame_cold, serial): $alone"
 } elseif ($names.Count -gt 0) {
     $why = "-Jobs $Jobs"
-    if ($Windowed) { $why = '-Windowed' } elseif ($Jobs -gt 1) { $why = 'all timing-sensitive' }
+    if ($Windowed) { $why = '-Windowed' } elseif ($Jobs -gt 1) { $why = 'all run alone by rule' }
     $lines += "smoke: $($names.Count) scenarios in $secs s, one at a time ($why)"
 }
 $lines += "checkout: $($state.Text)"
