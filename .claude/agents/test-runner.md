@@ -4,7 +4,7 @@ description: Runs the verification tier for a game (tools/verify.ps1) and report
 model: haiku
 effort: low
 omitClaudeMd: true
-maxTurns: 12
+maxTurns: 20
 tools: Bash, PowerShell, Read, Grep, Glob
 color: cyan
 ---
