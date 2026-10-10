@@ -9,7 +9,7 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
   header records `commit=` and `tree=clean|dirty`. `-Scenario a,b|none`: scoped run (tests + those scenarios) into
   `summary-scoped.txt`, never summary.txt. `-CheckFresh`: FRESH when summary.txt is a PASS of HEAD at that tier or higher
 - `./tools/test.ps1 -Game <g> [-File test/unit/test_x.gd] [-Test name]`  GUT unit tests, headless
-- `./tools/smoke.ps1 -Game <g> [-Scenario a,b] [-Jobs 3]`  headless scenario runs, 3 at a time; timing-sensitive ones alone after
+- `./tools/smoke.ps1 -Game <g> [-Scenario a,b] [-Jobs 3]`  headless scenario runs, 3 at a time; metrics/perf_*/world_stream* ones alone after
 - `./tools/shots.ps1 -Game <g> [-Scenario a,b]`  windowed run with screenshots (a game window opens; expected). Without
   `-Scenario` only scenarios with a screenshot or metrics step. One window at a time on the machine (a lock; it may wait)
 - `./tools/pixels.ps1 -Image <png>[,<png>] label=x:y ... [-Column x -Rows a,b]`  pixel colors and luma; never ad-hoc `Add-Type` scripts

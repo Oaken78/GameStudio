@@ -11,7 +11,7 @@ in the game's own repo (files under `games/<g>/`). You may always run a higher t
 |---|---|---|---|
 | 0 | only `*.md`, `design/` | nothing | 0 s |
 | 1 | at most one `.gd` under `scripts/` or `autoload/` (plus its test), no scene, shader or UI | gdformat check (if installed), `--check-only` parse (advisory), GUT unit tests for the matching `test_<name>.gd`, else all unit tests | 10-30 s |
-| 2 | more scripts, `.tscn`/`.tres`, `project.godot`, `autoload/` | tier 1 + all GUT tests + every `test/scenarios/*.json` headless (3 at a time, timing-sensitive ones alone after) + log scan + metrics vs `design/budgets.json` | 30-90 s |
+| 2 | more scripts, `.tscn`/`.tres`, `project.godot`, `autoload/` | tier 1 + all GUT tests + every `test/scenarios/*.json` headless (3 at a time; metrics steps, `perf_*`, `world_stream*`, `frame_cold` alone after; a failure only on `*_ms` asserts is retried alone once) + log scan + metrics vs `design/budgets.json` | 30-90 s |
 | 3 | any `.gdshader`, `ui/`, `shaders/`, `assets/`, images, audio, theme, or the packet says feel/milestone | tier 2 + `tools/shots.ps1` (windowed screenshots of the scenarios with a screenshot or metrics step, compare vs `test/baselines/`, budgets; one window at a time on the machine) | 2-5 min |
 
 Output: at most 40 lines on the console and `games/<g>/.reports/summary.txt` with one line per stage,
@@ -119,4 +119,5 @@ Filled in by `tools/selftest.ps1` runs. Record the date, the Godot version and t
 | 2026-10-11 | Parallel headless scenario runs (3 Godot processes, own `--log-file` and `--out`) | no collisions: nothing written into `.godot/` or `user://logs`; selftest covers order, an 8 s timeout, an early exit and a failed assert among parallel jobs |
 | 2026-10-11 | Named mutex as the window lock (`Global\GameStudio-GodotWindow`) | works across processes; free at once when the holding process is killed; a waiting run records "waited N s" |
 | 2026-10-11 | walkers tier 3 (49 scenarios) before / after the speed-up | 657 s (unit 16, smoke 245 one at a time, shots 380 for all 47) -> 463 s (tests 24, smoke 233 with 16 parallel and 33 timing-sensitive alone, shots 206 for the 28 with a screenshot or metrics step) |
-| 2026-10-11 | walkers' 33 timing-sensitive scenarios 3 at a time (experiment, not the rule) | all PASS in 62 s against 152 s alone; worst `tick_p99_ms` 2.23 vs 1.96 alone (bar 3.0), worst `tick_max_ms` 6.38 vs 7.86 alone (bar 8.0) |
+| 2026-10-11 | walkers' 33 scenarios with metrics or `*_ms` asserts, 3 at a time (experiment) | all PASS in 62 s against 152 s alone; worst `tick_p99_ms` 2.23 vs 1.96 alone (bar 3.0), worst `tick_max_ms` 6.38 vs 7.86 alone (bar 8.0). Lead decision: `*_ms` asserts run in parallel with an alone retry |
+| 2026-10-11 | walkers after that rule (106a8ec, 49 scenarios, 14 alone, 0 retried) | tier 2 169.5 s (tests 24, smoke 145); tier 3 382.5 s (tests 24, smoke 140, shots 218) against 657 s before |

@@ -8,7 +8,7 @@
 #                    Writes summary-scoped.txt and never touches summary.txt. -Scenario none: tests only.
 #   -CheckFresh      runs nothing; says whether summary.txt can stand in for a full run at -Tier: FRESH (exit 0)
 #                    when it is a PASS at that tier or higher of HEAD's content on a clean tree, else STALE (exit 1).
-#   -Jobs n          headless smoke scenarios at a time (default 3; timing-sensitive ones still run alone).
+#   -Jobs n          headless smoke scenarios at a time (default 3; metrics/perf_*/world_stream* ones run alone).
 #   -SummaryName f   write the full-run summary to .reports/<f> (tools/hooks/gate.ps1 uses summary-gate.txt).
 param(
     [Parameter(Mandatory = $true)][string]$Game,

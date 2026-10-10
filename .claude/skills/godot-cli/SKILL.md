@@ -53,7 +53,7 @@ threshold lives in `design/budgets.json` under `screens.rmse_threshold` (default
 Harness exit codes: 0 ok, 10 assertion failed, 11 engine error counted, 12 timeout, 13 scenario could not load.
 The wrapper adds 124 for a process timeout and 125 when a windowed run gave up on the window lock.
 Output: `result.json`, `metrics__<name>.json`, `<shot>.png`, `godot.log`.
-Top-level `"serial": true` makes smoke run the scenario alone (for a wall-clock number the rule below misses).
+Top-level `"serial": true` makes smoke run the scenario alone (for a scenario the rule below does not catch).
 
 ## tools/ options (verify, smoke, shots)
 - `verify.ps1 -Game <g> -Tier <n>`: full run; `.reports/summary.txt` header records `commit=`, `content=` (tree
@@ -61,10 +61,12 @@ Top-level `"serial": true` makes smoke run the scenario alone (for a wall-clock 
   scenarios, written to `summary-scoped.txt` (never summary.txt). `-CheckFresh`: runs nothing, prints FRESH (exit 0)
   when summary.txt is a PASS at `-Tier` or higher of HEAD's content on a clean tree, else STALE (exit 1).
   `-Jobs n` passes to smoke. The stop gate writes `summary-gate.txt` and skips when summary.txt is FRESH.
-- `smoke.ps1 [-Scenario a,b] [-Jobs 3]`: headless, 3 scenarios at a time, each in its own process and folder; then
-  the timing-sensitive ones alone: a `metrics` step, an `assert_prop` on `*_ms`, `*_usec`, `*_frames`, `*fps*` or
-  `*per_frame*`, a name `perf_*`, `world_stream*` or `frame_cold`, or `"serial": true` (`*_s` and tick counts are
-  game time under `--fixed-fps`, so they stay parallel). Output order is the scenario order. `-Jobs 1` = one at a time.
+- `smoke.ps1 [-Scenario a,b] [-Jobs 3]`: headless, 3 scenarios at a time (longest first), each in its own process
+  and folder; then alone, one at a time: a `metrics` step, a name `perf_*`, `world_stream*` or `frame_cold`, or
+  `"serial": true`. Asserts on `*_ms`/`*_usec` tick costs run in parallel: when every failing step of a parallel
+  run is an `assert_prop` on `*_ms`, `*_usec`, `*fps*` or `*per_frame*`, smoke re-runs it alone once, that result
+  counts, and a `retried alone` line shows both outcomes. Frame and tick counts and `*_s` are game time under
+  `--fixed-fps`. Output order is the scenario order. `-Jobs 1` = one at a time.
 - `shots.ps1 [-Scenario a,b] [-LockTimeoutSec 1800]`: without `-Scenario` only scenarios with a `screenshot` or
   `metrics` step run (the skipped ones are listed in one line); a named scenario always runs.
 - Window lock: every windowed Godot launch through the tools (shots, `smoke -Windowed`, `godot.ps1` without
