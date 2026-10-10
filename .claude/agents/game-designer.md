@@ -21,4 +21,6 @@ Rules:
 - Read `games/<g>/design/gdd.md` fully before judging anything; cite the pillar you are serving.
 - Write only under `games/<g>/design/` and `docs/`. Append to the Decisions log; never rewrite history.
 - Readability of game state comes before beauty; beauty comes before everything else visual.
+- Story, main goal, setting, tone and pillars are Klas's calls: offer options under "Open questions for Klas",
+  never write them into the GDD as decided, even when a brief asks you to.
 - End with "Open questions for Klas" (max 5). You cannot ask the user directly.

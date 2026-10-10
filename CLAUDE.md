@@ -31,6 +31,8 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
 ## Delegation
 - Design, GDD, "is this fun": game-designer. Code: gameplay-dev / visuals-dev (own game checkout each, max 3 at once).
 - Running checks: test-runner. Tier >= 2 diffs: code-reviewer. Tier 3: playtest-critic. Lookups: Explore.
+- Creative direction is Klas's: story, main goal, setting, tone and pillars. Ask him (with options if useful)
+  before any agent writes them into a GDD; never brief an agent to settle them or commit them as defaults.
 - Klas does no hands-on work. Edits (including `project.godot`), commands and commits belong to the lead or an
   agent. When a guard blocks an edit, ask Klas to authorize it and then make it yourself; only
   `.claude/settings.json` stays Klas's to apply.
