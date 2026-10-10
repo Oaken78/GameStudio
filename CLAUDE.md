@@ -36,6 +36,9 @@ Godot binary: `$env:GODOT_BIN` (set in .claude/settings.json). Run it through `t
   `.claude/settings.json` stays Klas's to apply.
 - Klas plays remotely: every build for Klas goes out by the `playtest-build` skill (a temporary `playtest` branch on
   the game's GitHub repo, deleted once Klas has saved it).
+- Playable first (Klas, standing): get playable builds to Klas early and often. Review rounds fix only what breaks
+  play, a pillar or a budget; polish, test hygiene and optional findings go to plan.md follow-ups, not new rounds.
+  Do not sink time into details that may not survive play; Klas judges feel in the build.
 - Plan first for anything beyond a one-sentence diff. Tell Klas when to `/clear` (task done, decisions in files,
   work committed) or `/compact` (long session mid-task); only Klas can type them.
 
