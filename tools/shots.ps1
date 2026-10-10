@@ -1,14 +1,19 @@
 # Windowed scenario runs with screenshots (tier 3). A game window opens; that is expected.
+# Without -Scenario it runs only the scenarios with a "screenshot" or "metrics" step (a windowed run of the others
+# adds nothing to their headless smoke run) and lists the skipped ones; -Scenario a,b always runs a and b.
+# One windowed Godot at a time on the machine: each scenario waits for the window lock (named mutex) and holds it
+# for that one run; after -LockTimeoutSec (default 1800) it gives up with FAIL and skips the remaining scenarios.
 # Compares every screenshot with test/baselines/<scenario>__<shot>.png and prints SAME / CHANGED / NEW / MISSING.
 # -SaveBaseline copies this run's screenshots into test/baselines (the only sanctioned way to change them).
 # Writes .reports/shots-<timestamp>/ and .reports/shots-last.txt. Exit 0 pass, 1 fail (CHANGED or MISSING counts as fail; NEW does not).
 param(
     [Parameter(Mandatory = $true)][string]$Game,
-    [string]$Scenario = 'all',
+    [string[]]$Scenario = @('all'),
     [switch]$SaveBaseline,
     [string]$Shot = '',
     [int]$Seed = 1234,
     [int]$TimeoutSec = 0,
+    [int]$LockTimeoutSec = 1800,
     [string]$Root = '',
     [switch]$Quiet
 )
@@ -18,6 +23,8 @@ $null = Invoke-Import -ProjectDir $proj
 $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
 $run = New-ReportsDir $proj "shots-$ts"
 $reports = New-ReportsDir $proj
+$state = Get-CheckoutState $proj
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
 $bdir = Join-Path $proj 'test\baselines'
 if (-not (Test-Path $bdir)) { $null = New-Item -ItemType Directory -Path $bdir }
 $gdi = Join-Path $bdir '.gdignore'
@@ -32,25 +39,41 @@ if (Test-Path $bf) {
     } catch { }
 }
 
-$names = @()
-if ($Scenario -eq 'all') {
-    $sdir = Join-Path $proj 'test\scenarios'
-    if (Test-Path $sdir) { $names = @(Get-ChildItem $sdir -Filter '*.json' | ForEach-Object { $_.BaseName }) }
-} else {
-    $names = @($Scenario)
+$names = @(Get-ScenarioNames -ProjectDir $proj -Scenario $Scenario)
+$skipped = @()
+if (($Scenario -join ',').Trim() -eq 'all') {
+    $keep = @()
+    foreach ($n in $names) {
+        if ((Get-ScenarioInfo -ProjectDir $proj -Name $n).Windowed) { $keep += $n } else { $skipped += $n }
+    }
+    $names = $keep
 }
 
 $lines = @()
 $allOk = $true
+$waitedTotal = 0.0
+$lockFailed = $false
 foreach ($n in $names) {
+    if ($lockFailed) {
+        $lines += "SHOTS $n FAIL not run (window lock timeout above)"
+        continue
+    }
     $out = Join-Path $run $n
     $null = New-Item -ItemType Directory -Path $out
-    $res = Invoke-Scenario -ProjectDir $proj -ScenarioName $n -OutDir $out -Windowed -Screens -Seed $Seed -TimeoutSec $TimeoutSec
+    $res = Invoke-Scenario -ProjectDir $proj -ScenarioName $n -OutDir $out -Windowed -Screens -Seed $Seed -TimeoutSec $TimeoutSec -LockTimeoutSec $LockTimeoutSec
+    $waitedTotal += $res.LockWaitedSec
+    if ($res.LockFailed) {
+        $lines += "SHOTS $n FAIL $($res.Stderr)"
+        $allOk = $false
+        $lockFailed = $true
+        continue
+    }
     $budget = @(Test-Budgets -ProjectDir $proj -OutDir $out)
     $ok = $res.Ok -and ($budget.Count -eq 0)
     $status = 'FAIL'
     if ($ok) { $status = 'PASS' }
     $lines += "SHOTS $n $status exit=$($res.ExitCode) seconds=$($res.Seconds) errors=$($res.ErrorLines.Count)"
+    if ($res.LockWaitedSec -ge 1) { $lines += "  waited $($res.LockWaitedSec) s for the window lock" }
     if ($res.Result -and $res.Result.steps) {
         foreach ($s in $res.Result.steps) {
             if ($s.status -ne 'ok') { $lines += "  step $($s.index) $($s.step): $($s.status) $($s.detail)" }
@@ -97,7 +120,13 @@ foreach ($n in $names) {
     }
     if (-not $ok) { $allOk = $false }
 }
-if ($names.Count -eq 0) { $lines += "SHOTS $Game no scenarios found in test/scenarios" }
+$sw.Stop()
+if ($names.Count -eq 0 -and $skipped.Count -eq 0) { $lines += "SHOTS $Game no scenarios found in test/scenarios" }
+if ($skipped.Count -gt 0) {
+    $lines += "shots: skipped $($skipped.Count) scenarios without a screenshot or metrics step (smoke runs them headless): $($skipped -join ', ')"
+}
+$lines += "shots: $($names.Count) scenarios in $([math]::Round($sw.Elapsed.TotalSeconds, 1)) s, waited $([math]::Round($waitedTotal, 1)) s for the window lock"
+$lines += "checkout: $($state.Text)"
 $lines += "artifacts: $run"
 Write-Lines -Lines $lines -Path (Join-Path $run 'shots-summary.txt') -Quiet
 Write-Lines -Lines $lines -Path (Join-Path $reports 'shots-last.txt') -Quiet:$Quiet

@@ -5,6 +5,8 @@
 # (agent_transcript_path). Fallback for an agent in a Claude worktree on branch worktree-<name>: a checkout on that
 # same branch. A checkout on main is never checked (developers run from the root repo, which sits on main).
 # Cached by diff hash in games/<id>/.reports/gate-stamp.json, so stopping again after a green run costs nothing.
+# Skipped when .reports/summary.txt already holds a PASS (tier >= 1) of HEAD's content on a clean tree. Its own run
+# writes .reports/summary-gate.txt, never summary.txt, so the developer's full-run evidence survives the stop.
 # Exits 0 in every case; a broken hook must never trap an agent.
 $ErrorActionPreference = 'Continue'
 try {
@@ -72,15 +74,20 @@ try {
             } catch { }
         }
         $g = $d.Name
-        & $verify -Game $g -Root $root -Tier auto -MaxTier 1 -Quiet
+        $fresh = Test-SummaryFresh -ProjectDir $proj -MinTier 1
+        if ($fresh.Fresh) {
+            [System.IO.File]::WriteAllText($stampPath, (@{ hash = $hash; pass = $true; at = (Get-Date).ToString('s'); skipped = $fresh.Reason } | ConvertTo-Json -Compress))
+            continue
+        }
+        & $verify -Game $g -Root $root -Tier auto -MaxTier 1 -SummaryName 'summary-gate.txt' -Quiet
         $code = $LASTEXITCODE
         $pass = ($code -eq 0)
         [System.IO.File]::WriteAllText($stampPath, (@{ hash = $hash; pass = $pass; at = (Get-Date).ToString('s') } | ConvertTo-Json -Compress))
         if (-not $pass) {
             $summary = @()
-            $sp = Join-Path $reports 'summary.txt'
+            $sp = Join-Path $reports 'summary-gate.txt'
             if (Test-Path $sp) { $summary = @(Get-Content $sp | Select-Object -Last 25) }
-            $reason = "Tier 1 verification failed for games/$g (tools/hooks/gate.ps1). Fix the failure, re-run ./tools/verify.ps1 -Game $g -Tier auto, then finish.`n" + ($summary -join "`n")
+            $reason = "Tier 1 verification failed for games/$g (tools/hooks/gate.ps1, games/$g/.reports/summary-gate.txt). Fix the failure, re-run ./tools/verify.ps1 -Game $g -Tier auto, then finish.`n" + ($summary -join "`n")
             $out = @{ decision = 'block'; reason = $reason } | ConvertTo-Json -Compress
             [Console]::Out.WriteLine($out)
             exit 0
